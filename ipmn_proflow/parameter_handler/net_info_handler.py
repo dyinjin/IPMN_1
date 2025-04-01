@@ -7,10 +7,13 @@ def net_info_1(dataset):
     incoming_count = df['Receiver_account'].value_counts()
 
     def calculate_counts(row):
+        # add each account's transaction times together
         total_sender_count = (outgoing_count.get(row['Sender_account'], 0) +
                               incoming_count.get(row['Sender_account'], 0))
+        # means sender user has How many transactions were made within the dataset, both in and out
         total_receiver_count = (outgoing_count.get(row['Receiver_account'], 0) +
                                 incoming_count.get(row['Receiver_account'], 0))
+        # means receive user has How many transactions were made within the dataset, both in and out
 
         return pd.Series({
             'out_same_count': total_sender_count,
