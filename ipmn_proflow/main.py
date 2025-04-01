@@ -15,6 +15,7 @@ def main():
         # Load quick test dataset using predefined year and month
         data_set = UnitDataLoader().dataloader_year_month(config, config.QT_TRAIN_YEAR, config.QT_TRAIN_MONTH)
         print("Dataset loaded successfully.")
+    # TODO: Add support for more configuration options
     else:
         # Raise an error if dataset mode is unsupported
         raise AttributeError(f"Dataset mode '{args.dataset}' is not supported.")
@@ -29,6 +30,7 @@ def main():
         data_set = date_apart(data_set)
         # Add additional network information
         data_set = net_info_1(data_set)
+    # TODO: Add support for more configuration options
     else:
         # Raise an error if parameter handle mode is unsupported
         raise AttributeError(f"Parameter handle mode '{args.param_h}' is not supported.")
@@ -42,11 +44,11 @@ def main():
     if args.balance == config.BALANCE_MODES['random_73']:
         # Split dataset into training and testing sets with a 70-30 ratio
         X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.3, random_state=config.RANDOM_SEED)
+    # TODO: Add support for more configuration options
     else:
         # Raise an error if balance mode is unsupported
         raise AttributeError(f"Balance mode '{args.balance}' is not supported.")
 
-    # TODO: Add support for more configuration options
     # TODO: Implement model choice functionality
 
     # Process numerical and categorical features for classification models
