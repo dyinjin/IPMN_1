@@ -2,43 +2,55 @@ from ipmn_proflow.imports import *
 
 
 class Config:
+    """
+    Configuration class for managing dataset paths, parameters, modes, and hyperparameters.
+    """
+
     def __init__(self):
+        # Path to the data directory
         self.DATAPATH = f'{os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))}\\data\\'
+        # Random seed for reproducibility
         self.RANDOM_SEED = 42
 
-        # don't change STANDARD_PARAM make new dataset follow the rules
+        # Standardized input parameters that datasets must follow
         self.STANDARD_INPUT_PARAM = ['Is_laundering',
                                      'Date', 'Time', 'Sender_account', 'Receiver_account', 'Amount',
-                                     'Payment_currency', 'Received_currency', 'Payment_type',
-                                     ]
+                                     'Payment_currency', 'Received_currency', 'Payment_type']
 
+        # Label for classification tasks
         self.STANDARD_INPUT_LABEL = 'Is_laundering'
 
+        # Dataset modes for argument selection
         self.DATASET_MODES = {
             'default': 'default',
             'quick_test': 'quick_test',
             'all': 'all',
         }
 
+        # Parameter handling modes
         self.PARAMETER_MODES = {
             'default': 'default',
             'time_date_division': 'time_date_division',
             'tdd_net_info_1': 'tdd_net_info_1',
         }
 
+        # Data balancing modes for splitting datasets
         self.BALANCE_MODES = {
             'default': 'default',
             'random_73': 'random_73',
             'cut_73': 'cut_73',
         }
 
+        # Hyperparameter grid for model tuning
         self.PARAM_GRID = {
             'max_depth': [16],
             'eta': [0.1],
         }
 
+        # Target true positive rate (TPR) for model evaluation
         self.TPR = 0.9
 
+        # Predefined quick test dataset time configuration
         self.QT_TRAIN_YEAR = 2022
         self.QT_TRAIN_MONTH = 10
         self.QT_TEST_YEAR = 2022
@@ -46,13 +58,14 @@ class Config:
 
     def parse_arguments(self):
         """
-        Parse command-line arguments.
+        Parse command-line arguments for dataset mode, parameter handling mode, and balance mode.
 
         Returns:
-            argparse.Namespace: Parsed arguments.
+            argparse.Namespace: Parsed command-line arguments.
         """
-        parser = argparse.ArgumentParser(description="")
+        parser = argparse.ArgumentParser(description="Argument parser for configuring dataset and processing modes.")
 
+        # Dataset mode argument
         parser.add_argument(
             '--dataset',
             type=str,
@@ -61,6 +74,7 @@ class Config:
             help='Specify dataset mode.'
         )
 
+        # Parameter handling mode argument
         parser.add_argument(
             '--param_h',
             type=str,
@@ -69,6 +83,7 @@ class Config:
             help='Specify parameter handling mode.'
         )
 
+        # Data balancing mode argument
         parser.add_argument(
             '--balance',
             type=str,

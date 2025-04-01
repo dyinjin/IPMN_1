@@ -2,18 +2,34 @@ from ipmn_proflow.imports import *
 
 
 def date_apart(dataset):
+    """
+    Splits date and time columns into individual components.
+
+    Args:
+        dataset (pd.DataFrame): Input dataset containing 'Date' and 'Time' columns.
+
+    Returns:
+        pd.DataFrame: Updated dataset with separate columns for year, month, week, day, hour, minute, and second.
+                     Original 'Date' and 'Time' columns are dropped.
+    """
+    # Make a copy of the dataset to avoid modifying the original data
     df = dataset
-    # date in format like 2022-10-07
-    df['Date'] = pd.to_datetime(df['Date'])
+
+    # Convert 'Date' column to datetime format and extract components
+    df['Date'] = pd.to_datetime(df['Date'])  # Example format: '2022-10-07'
     df['Year'] = df['Date'].dt.year
     df['Month'] = df['Date'].dt.month
     df['Week'] = df['Date'].dt.isocalendar().week
     df['Day'] = df['Date'].dt.day
 
-    df['Time'] = pd.to_datetime(df['Time'], format='%H:%M:%S')
+    # Convert 'Time' column to datetime format and extract components
+    df['Time'] = pd.to_datetime(df['Time'], format='%H:%M:%S')  # Example format: '10:35:19'
     df['Hour'] = df['Time'].dt.hour
     df['Minute'] = df['Time'].dt.minute
     df['Second'] = df['Time'].dt.second
 
+    # Drop original 'Date' and 'Time' columns as their individual components are now represented
     df.drop(columns=['Date', 'Time'], inplace=True)
+
+    # Return the updated dataset
     return df
