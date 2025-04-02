@@ -15,6 +15,10 @@ def main():
         # Load quick test dataset using predefined year and month
         data_set = UnitDataLoader().dataloader_year_month(config, config.QT_TRAIN_YEAR, config.QT_TRAIN_MONTH)
         print("Dataset loaded successfully.")
+    elif args.dataset == config.DATASET_MODES['all']:
+        data_set = UnitDataLoader().dataloader_all(config)
+    elif args.dataset == config.DATASET_MODES['first_2']:
+        data_set = UnitDataLoader().dataloader_first_2(config)
     # TODO: Add support for more configuration options
     else:
         # Raise an error if dataset mode is unsupported
@@ -35,15 +39,31 @@ def main():
         # Raise an error if parameter handle mode is unsupported
         raise AttributeError(f"Parameter handle mode '{args.param_h}' is not supported.")
 
-    # Separate features (X) and labels (Y)
+    # Separate features (X) and labels (y)
     X = data_set.drop(columns=config.STANDARD_INPUT_LABEL)
-    Y = data_set[config.STANDARD_INPUT_LABEL]
+    y = data_set[config.STANDARD_INPUT_LABEL]
 
     # Perform data balancing based on mode specified in arguments
     print(f"Train/Test balanced by mode: {args.balance}")
     if args.balance == config.BALANCE_MODES['random_73']:
         # Split dataset into training and testing sets with a 70-30 ratio
-        X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.3, random_state=config.RANDOM_SEED)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=config.RANDOM_SEED)
+    elif args.balance == config.BALANCE_MODES['one_one']:
+        # must load dataset contain at least two months
+        # now support first_2. if load all can change months by need
+        data_set = data_set.sort_values(by='Date')
+
+        def get_month_data(dataset, start_date, month):
+            month_start = start_date + pd.DateOffset(months=month - 1)
+            month_end = start_date + pd.DateOffset(months=month)
+            return dataset[(dataset['Date'] >= month_start) & (dataset['Date'] < month_end)]
+
+        train_set = get_month_data(data_set, data_set['Date'].min(), config.TRAIN_MONTH_OFFSET)
+        test_set = get_month_data(data_set, data_set['Date'].min(), config.TEST_MONTH_OFFSET)
+        X_train = train_set.drop(columns=config.STANDARD_INPUT_LABEL)
+        y_train = train_set[config.STANDARD_INPUT_LABEL]
+        X_test = test_set.drop(columns=config.STANDARD_INPUT_LABEL)
+        y_test = test_set[config.STANDARD_INPUT_LABEL]
     # TODO: Add support for more configuration options
     else:
         # Raise an error if balance mode is unsupported
@@ -51,9 +71,10 @@ def main():
 
     # TODO: Implement model choice functionality
 
+    X_train.drop(columns=['Date', 'Time'], inplace=True)
     # Process numerical and categorical features for classification models
-    numerical_features = X.select_dtypes(exclude="object").columns
-    categorical_features = X.select_dtypes(include="object").columns
+    numerical_features = X_train.select_dtypes(exclude="object").columns
+    categorical_features = X_train.select_dtypes(include="object").columns
 
     transformer = ColumnTransformer(transformers=[
         # Encode categorical features using OrdinalEncoder

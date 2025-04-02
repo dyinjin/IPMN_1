@@ -9,6 +9,8 @@ class Config:
     def __init__(self):
         # Path to the data directory
         self.DATAPATH = f'{os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))}\\data\\'
+
+        self.ORI_ALL_CSV = 'SAML-D.csv'
         # Random seed for reproducibility
         self.RANDOM_SEED = 42
 
@@ -25,6 +27,7 @@ class Config:
             'default': 'default',
             'quick_test': 'quick_test',
             'all': 'all',
+            'first_2': 'first_2'
         }
 
         # Parameter handling modes
@@ -39,6 +42,7 @@ class Config:
             'default': 'default',
             'random_73': 'random_73',
             'cut_73': 'cut_73',
+            'one_one': 'one_one',
         }
 
         # Hyperparameter grid for model tuning
@@ -50,11 +54,14 @@ class Config:
         # Target true positive rate (TPR) for model evaluation
         self.TPR = 0.9
 
-        # Predefined quick test dataset time configuration
+        # Predefined quick test dataset time configuration for quick-test
         self.QT_TRAIN_YEAR = 2022
         self.QT_TRAIN_MONTH = 10
         self.QT_TEST_YEAR = 2022
         self.QT_TEST_MONTH = 12
+
+        self.TRAIN_MONTH_OFFSET = 1
+        self.TEST_MONTH_OFFSET = 2
 
     def parse_arguments(self):
         """
