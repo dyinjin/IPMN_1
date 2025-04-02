@@ -24,25 +24,27 @@ class Config:
 
         # Dataset modes for argument selection
         self.DATASET_MODES = {
-            'default': 'default',
+            # 'default': 'default',
             'quick_test': 'quick_test',
             'all': 'all',
-            'first_2': 'first_2'
+            'first_2': 'first_2',
+            'first_4': 'first_4'
         }
 
         # Parameter handling modes
         self.PARAMETER_MODES = {
-            'default': 'default',
+            # 'default': 'default',
             'time_date_division': 'time_date_division',
             'tdd_net_info_1': 'tdd_net_info_1',
         }
 
         # Data balancing modes for splitting datasets
         self.BALANCE_MODES = {
-            'default': 'default',
+            # 'default': 'default',
             'random_73': 'random_73',
-            'cut_73': 'cut_73',
+            # 'cut_73': 'cut_73',
             'one_one': 'one_one',
+            'rest_one': 'rest_one'
         }
 
         # Hyperparameter grid for model tuning
@@ -61,7 +63,7 @@ class Config:
         self.QT_TEST_MONTH = 12
 
         self.TRAIN_MONTH_OFFSET = 1
-        self.TEST_MONTH_OFFSET = 2
+        self.TEST_MONTH_OFFSET = 4
 
     def parse_arguments(self):
         """

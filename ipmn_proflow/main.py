@@ -18,7 +18,9 @@ def main():
     elif args.dataset == config.DATASET_MODES['all']:
         data_set = UnitDataLoader().dataloader_all(config)
     elif args.dataset == config.DATASET_MODES['first_2']:
-        data_set = UnitDataLoader().dataloader_first_2(config)
+        data_set = UnitDataLoader().dataloader_first(config, 2)
+    elif args.dataset == config.DATASET_MODES['first_4']:
+        data_set = UnitDataLoader().dataloader_first(config, 4)
     # TODO: Add support for more configuration options
     else:
         # Raise an error if dataset mode is unsupported
@@ -50,28 +52,18 @@ def main():
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=config.RANDOM_SEED)
     elif args.balance == config.BALANCE_MODES['one_one']:
         # must load dataset contain at least two months
-        # now support first_2. if load all can change months by need
-        data_set = data_set.sort_values(by='Date')
-
-        def get_month_data(dataset, start_date, month):
-            month_start = start_date + pd.DateOffset(months=month - 1)
-            month_end = start_date + pd.DateOffset(months=month)
-            return dataset[(dataset['Date'] >= month_start) & (dataset['Date'] < month_end)]
-
-        train_set = get_month_data(data_set, data_set['Date'].min(), config.TRAIN_MONTH_OFFSET)
-        test_set = get_month_data(data_set, data_set['Date'].min(), config.TEST_MONTH_OFFSET)
-        X_train = train_set.drop(columns=config.STANDARD_INPUT_LABEL)
-        y_train = train_set[config.STANDARD_INPUT_LABEL]
-        X_test = test_set.drop(columns=config.STANDARD_INPUT_LABEL)
-        y_test = test_set[config.STANDARD_INPUT_LABEL]
-    # TODO: Add support for more configuration options
+        X_train, X_test, y_train, y_test = CustomBalance.one_train_one_test(data_set, config)
+    elif args.balance == config.BALANCE_MODES['rest_one']:
+        # must load dataset contain at least two months
+        X_train, X_test, y_train, y_test = CustomBalance.rest_train_one_test(data_set, config)
+        # TODO: Add support for more configuration options
     else:
         # Raise an error if balance mode is unsupported
         raise AttributeError(f"Balance mode '{args.balance}' is not supported.")
 
     # TODO: Implement model choice functionality
 
-    X_train.drop(columns=['Date', 'Time'], inplace=True)
+    X_train.drop(columns=['Date', 'Timestamp'], inplace=True)
     # Process numerical and categorical features for classification models
     numerical_features = X_train.select_dtypes(exclude="object").columns
     categorical_features = X_train.select_dtypes(include="object").columns

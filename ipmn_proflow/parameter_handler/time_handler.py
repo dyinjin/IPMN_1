@@ -3,35 +3,36 @@ from ipmn_proflow.imports import *
 
 def date_apart(dataset):
     """
-    Splits date and time columns into individual components and adds a 'Timestamp' column.
+    Splits date and time columns into individual components, adds a 'Timestamp' column,
+    and replaces the original 'Time' column.
 
     Args:
         dataset (pd.DataFrame): Input dataset containing 'Date' and 'Time' columns.
 
     Returns:
-        pd.DataFrame: Updated dataset with separate columns for year, month, week, day, hour, minute, second, and a combined 'Timestamp' column.
-                     Original 'Date' and 'Time' columns are dropped.
+        pd.DataFrame: Updated dataset with separate columns for year, month, week, day, hour, minute, second,
+                     and a combined 'Timestamp' column.
     """
-    # Make a copy of the dataset to avoid modifying the original data
-    df = dataset
+    # Ensure 'Date' and 'Time' columns are in datetime format
+    if not pd.api.types.is_datetime64_any_dtype(dataset['Date']):
+        dataset['Date'] = pd.to_datetime(dataset['Date'])  # Example format: '2022-10-07'
+    if not pd.api.types.is_datetime64_any_dtype(dataset['Time']):
+        dataset['Time'] = pd.to_datetime(dataset['Time'], format='%H:%M:%S')  # Example format: '10:35:19'
 
-    # Convert 'Date' and 'Time' columns to datetime format
-    df['Date'] = pd.to_datetime(df['Date'])  # Example format: '2022-10-07'
-    df['Time'] = pd.to_datetime(df['Time'], format='%H:%M:%S')  # Example format: '10:35:19'
+    # Extract components from 'Date' and 'Time' using vectorized operations
+    dataset['Year'] = dataset['Date'].dt.year.astype('int16')
+    dataset['Month'] = dataset['Date'].dt.month.astype('int8')
+    dataset['Week'] = dataset['Date'].dt.isocalendar().week.astype('int8')
+    dataset['Day'] = dataset['Date'].dt.day.astype('int8')
+    dataset['Hour'] = dataset['Time'].dt.hour.astype('int8')
+    dataset['Minute'] = dataset['Time'].dt.minute.astype('int8')
+    dataset['Second'] = dataset['Time'].dt.second.astype('int8')
 
-    # Extract components from 'Date'
-    df['Year'] = df['Date'].dt.year
-    df['Month'] = df['Date'].dt.month
-    df['Week'] = df['Date'].dt.isocalendar().week
-    df['Day'] = df['Date'].dt.day
+    # Combine 'Date' and 'Time' into a 'Timestamp' column
+    dataset['Timestamp'] = pd.to_datetime(dataset['Date'].dt.date.astype(str) + " " +
+                                          dataset['Time'].dt.time.astype(str))
 
-    # Extract components from 'Time'
-    df['Hour'] = df['Time'].dt.hour
-    df['Minute'] = df['Time'].dt.minute
-    df['Second'] = df['Time'].dt.second
+    # Drop the original 'Time' column to save memory
+    dataset.drop(columns=['Time'], inplace=True)
 
-    # Drop original 'Date' and 'Time' columns
-    # df.drop(columns=['Date', 'Time'], inplace=True)
-
-    # Return the updated dataset
-    return df
+    return dataset

@@ -18,7 +18,8 @@ from sklearn.metrics import (classification_report, confusion_matrix, accuracy_s
 from xgboost import XGBClassifier
 
 # custom
-from unitdataloader import UnitDataLoader
 from config import Config
+from unitdataloader import UnitDataLoader
+from balance import CustomBalance
 from parameter_handler.time_handler import date_apart
 from parameter_handler.net_info_handler import net_info_1

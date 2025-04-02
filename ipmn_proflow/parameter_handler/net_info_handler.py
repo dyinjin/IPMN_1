@@ -13,42 +13,16 @@ def net_info_1(dataset):
                       - 'out_same_count': Total transactions (in and out) for sender account.
                       - 'in_same_count': Total transactions (in and out) for receiver account.
     """
-    # Create a copy of the dataset for processing
-    df = dataset
+    # Count the number of outgoing and incoming transactions for all accounts
+    outgoing_count = dataset['Sender_account'].value_counts()
+    incoming_count = dataset['Receiver_account'].value_counts()
 
-    # Count the number of outgoing transactions for each sender account
-    outgoing_count = df['Sender_account'].value_counts()
+    # Create dictionaries for fast lookups
+    outgoing_dict = outgoing_count.to_dict()
+    incoming_dict = incoming_count.to_dict()
 
-    # Count the number of incoming transactions for each receiver account
-    incoming_count = df['Receiver_account'].value_counts()
+    # Use the dictionaries to map transaction counts directly
+    dataset['out_same_count'] = dataset['Sender_account'].map(lambda x: outgoing_dict.get(x, 0) + incoming_dict.get(x, 0))
+    dataset['in_same_count'] = dataset['Receiver_account'].map(lambda x: outgoing_dict.get(x, 0) + incoming_dict.get(x, 0))
 
-    def calculate_counts(row):
-        """
-        Calculate total transaction counts for sender and receiver accounts.
-
-        Args:
-            row (pd.Series): A single row from the dataset.
-
-        Returns:
-            pd.Series: A Series containing:
-                       - 'out_same_count': Total transactions for sender account.
-                       - 'in_same_count': Total transactions for receiver account.
-        """
-        # Total transactions for the sender account (outgoing + incoming)
-        total_sender_count = (outgoing_count.get(row['Sender_account'], 0) +
-                              incoming_count.get(row['Sender_account'], 0))
-
-        # Total transactions for the receiver account (outgoing + incoming)
-        total_receiver_count = (outgoing_count.get(row['Receiver_account'], 0) +
-                                incoming_count.get(row['Receiver_account'], 0))
-
-        return pd.Series({
-            'out_same_count': total_sender_count,
-            'in_same_count': total_receiver_count
-        })
-
-    # Apply the `calculate_counts` function across all rows to generate new columns
-    df[['out_same_count', 'in_same_count']] = df.apply(calculate_counts, axis=1)
-
-    # Return the augmented dataset
-    return df
+    return dataset

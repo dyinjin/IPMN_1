@@ -67,7 +67,7 @@ class UnitDataLoader:
             raise FileNotFoundError(f"'{file_path}' not found. Please check the path.")
 
     @staticmethod
-    def dataloader_first_2(config):
+    def dataloader_first(config, month):
         file_path = f'{config.DATAPATH}{config.ORI_ALL_CSV}'
         if os.path.exists(file_path):
             print(f"Loading dataset from {file_path}")
@@ -88,7 +88,7 @@ class UnitDataLoader:
             earliest_date = csv_data['Date'].min()
 
             # Calculate the cutoff date (two months after the earliest date)
-            cutoff_date = earliest_date + pd.DateOffset(months=2)
+            cutoff_date = earliest_date + pd.DateOffset(months=month)
 
             # Filter data to include only records within the first two months
             csv_data = csv_data[(csv_data['Date'] >= earliest_date) & (csv_data['Date'] < cutoff_date)]
