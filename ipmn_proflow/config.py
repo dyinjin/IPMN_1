@@ -36,6 +36,7 @@ class Config:
             # 'default': 'default',
             'time_date_division': 'time_date_division',
             'tdd_net_info_1': 'tdd_net_info_1',
+            'tdd_net_info_2': 'tdd_net_info_2',
         }
 
         # Data balancing modes for splitting datasets
@@ -49,12 +50,12 @@ class Config:
 
         # Hyperparameter grid for model tuning
         self.PARAM_GRID = {
-            'max_depth': [16],
+            'max_depth': [16, 18],
             'eta': [0.1],
         }
 
         # Target true positive rate (TPR) for model evaluation
-        self.TPR = 0.9
+        self.TPR = 0.90
 
         # Predefined quick test dataset time configuration for quick-test
         self.QT_TRAIN_YEAR = 2022

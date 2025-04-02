@@ -36,6 +36,12 @@ def main():
         data_set = date_apart(data_set)
         # Add additional network information
         data_set = net_info_1(data_set)
+    elif args.param_h == config.PARAMETER_MODES['tdd_net_info_2']:
+        # Perform time-date division
+        data_set = date_apart(data_set)
+        # Add additional network information
+        data_set = net_info_1(data_set)
+        data_set = net_info_2(data_set)
     # TODO: Add support for more configuration options
     else:
         # Raise an error if parameter handle mode is unsupported
@@ -87,7 +93,7 @@ def main():
         estimator=xgb,
         param_grid=param_grid,
         scoring='roc_auc',
-        cv=4,
+        cv=2,
         verbose=2
     )
 
