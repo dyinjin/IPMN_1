@@ -9,10 +9,14 @@ def main():
     config = Config()
     args = config.parse_arguments()
 
+    # flag 1: dataset do not need to divide to train/test, test_set specified
+    # flag 0: dataset need to divide/balance to train/test
+    separate_set_flag = 0
+
     # Load dataset based on mode specified in arguments
     print(f"Load dataset by mode: {args.dataset}")
     if args.dataset == config.DATASET_MODES['quick_test']:
-        # Load quick test dataset using predefined year and month
+        # Load quick program_test dataset using predefined year and month
         data_set = UnitDataLoader().dataloader_year_month(config, config.QT_TRAIN_YEAR, config.QT_TRAIN_MONTH)
         print("Dataset loaded successfully.")
     elif args.dataset == config.DATASET_MODES['all']:
@@ -21,46 +25,91 @@ def main():
         data_set = UnitDataLoader().dataloader_first(config, 2)
     elif args.dataset == config.DATASET_MODES['first_4']:
         data_set = UnitDataLoader().dataloader_first(config, 4)
+    elif args.dataset == config.DATASET_MODES['IBM']:
+        data_set = UnitDataLoader().csvloader_specified(config, config.IBM_CSV)
+        data_set = UnitDataLoader().datauniter_ibm(config, data_set)
+    elif args.dataset == config.DATASET_MODES['all_and_IBM']:
+        # no balance but define a specified test csv
+        separate_set_flag = 1
+        data_set = UnitDataLoader().dataloader_all(config)
+        test_set = UnitDataLoader().csvloader_specified(config, config.IBM_CSV)
+        test_set = UnitDataLoader().datauniter_ibm(config, test_set)
+
+    elif args.dataset == config.DATASET_MODES['IBM_and_first_2']:
+        separate_set_flag = 1
+        data_set = UnitDataLoader().csvloader_specified(config, config.IBM_CSV)
+        data_set = UnitDataLoader().datauniter_ibm(config, data_set)
+        test_set = UnitDataLoader().dataloader_first(config, 2)
     # TODO: Add support for more configuration options
     else:
         # Raise an error if dataset mode is unsupported
         raise AttributeError(f"Dataset mode '{args.dataset}' is not supported.")
 
+    def parameter_adder(param_arg, dataset):
+        if param_arg == config.PARAMETER_MODES['time_date_division']:
+            # Split dataset by time and date
+            dataset = date_apart(dataset)
+            print("PARAMETER ADDED: date/time parameter divide")
+        elif param_arg == config.PARAMETER_MODES['tdd_net_info_1']:
+            # Perform time-date division
+            dataset = date_apart(dataset)
+            print("PARAMETER ADDED: date/time parameter divide")
+            # Add additional network information
+            dataset = net_info_tic(dataset)
+            print("PARAMETER ADDED: transaction time counter")
+        elif param_arg == config.PARAMETER_MODES['tdd_net_info_2']:
+            # Perform time-date division
+            dataset = date_apart(dataset)
+            print("PARAMETER ADDED: date/time parameter divide")
+            # Add additional network information
+            dataset = net_info_tic(dataset)
+            print("PARAMETER ADDED: transaction time counter")
+            dataset = net_info_rtw(dataset)
+            print("PARAMETER ADDED: recently trans with other account")
+        elif param_arg == config.PARAMETER_MODES['tdd_net_info_3']:
+            # Perform time-date division
+            dataset = date_apart(dataset)
+            print("PARAMETER ADDED: date/time parameter divide")
+            # Add additional network information
+            dataset = net_info_tic(dataset)
+            print("PARAMETER ADDED: transaction time counter")
+            dataset = net_info_rtw(dataset)
+            print("PARAMETER ADDED: recently trans with other account")
+            # TODO NEW PARAMETER: recently trans with other account gap how long?
+            dataset = net_info_3centrality(dataset)
+            print("PARAMETER ADDED: three kinds of graph centrality")
+        # TODO: Add support for more configuration options
+        else:
+            # Raise an error if parameter handle mode is unsupported
+            raise AttributeError(f"Parameter handle mode '{args.param_h}' is not supported.")
+        return dataset
+
     # Handle parameters based on mode specified in arguments
     print(f"Parameter handle by mode: {args.param_h}")
-    if args.param_h == config.PARAMETER_MODES['time_date_division']:
-        # Split dataset by time and date
-        data_set = date_apart(data_set)
-    elif args.param_h == config.PARAMETER_MODES['tdd_net_info_1']:
-        # Perform time-date division
-        data_set = date_apart(data_set)
-        # Add additional network information
-        data_set = net_info_1(data_set)
-    elif args.param_h == config.PARAMETER_MODES['tdd_net_info_2']:
-        # Perform time-date division
-        data_set = date_apart(data_set)
-        # Add additional network information
-        data_set = net_info_1(data_set)
-        data_set = net_info_2(data_set)
-    elif args.param_h == config.PARAMETER_MODES['tdd_net_info_3']:
-        # Perform time-date division
-        data_set = date_apart(data_set)
-        # Add additional network information
-        data_set = net_info_1(data_set)
-        data_set = net_info_2(data_set)
-        data_set = net_info_3(data_set)
-    # TODO: Add support for more configuration options
-    else:
-        # Raise an error if parameter handle mode is unsupported
-        raise AttributeError(f"Parameter handle mode '{args.param_h}' is not supported.")
+    data_set = parameter_adder(args.param_h, data_set)
 
-    # Separate features (X) and labels (y)
-    X = data_set.drop(columns=config.STANDARD_INPUT_LABEL)
-    y = data_set[config.STANDARD_INPUT_LABEL]
+    # some account info mixed number and character
+    for column in data_set.select_dtypes(include=['object']).columns:
+        data_set[column] = data_set[column].astype(str)
 
     # Perform data balancing based on mode specified in arguments
     print(f"Train/Test balanced by mode: {args.balance}")
-    if args.balance == config.BALANCE_MODES['random_7_train_3_test']:
+    if separate_set_flag:
+        # flag first detect. no balance need. do data_set thing again to test_set
+        print(f"Parameter in test handle by mode: {args.param_h}")
+        test_set = parameter_adder(args.param_h, test_set)
+        # some account info mixed number and character
+        for column in test_set.select_dtypes(include=['object']).columns:
+            test_set[column] = test_set[column].astype(str)
+
+        X_train = test_set.drop(columns=config.STANDARD_INPUT_LABEL)
+        y_train = test_set[config.STANDARD_INPUT_LABEL]
+        X_test = test_set.drop(columns=config.STANDARD_INPUT_LABEL)
+        y_test = test_set[config.STANDARD_INPUT_LABEL]
+    elif args.balance == config.BALANCE_MODES['random_7_train_3_test']:
+        # Separate features (X) and labels (y)
+        X = data_set.drop(columns=config.STANDARD_INPUT_LABEL)
+        y = data_set[config.STANDARD_INPUT_LABEL]
         # Split dataset into training and testing sets with a 70-30 ratio
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=config.RANDOM_SEED)
     elif args.balance == config.BALANCE_MODES['one_train_one_test']:
@@ -69,10 +118,6 @@ def main():
     elif args.balance == config.BALANCE_MODES['rest_train_one_test']:
         # must load dataset contain at least two months
         X_train, X_test, y_train, y_test = CustomBalance.rest_train_one_test(data_set, config)
-    elif args.balance == config.BALANCE_MODES['all_train_new_test']:
-        pass
-        #
-        # X_train, X_test, y_train, y_test = CustomBalance.all_train_one_test(data_set, config)
         # TODO: Add support for more configuration options
     else:
         # Raise an error if balance mode is unsupported
@@ -80,10 +125,17 @@ def main():
 
     # TODO: Implement model choice functionality
 
+    # already divide in week day hour etc.
     X_train.drop(columns=['Date', 'Timestamp'], inplace=True)
+
     # Process numerical and categorical features for classification models
     numerical_features = X_train.select_dtypes(exclude="object").columns
     categorical_features = X_train.select_dtypes(include="object").columns
+
+    # "account" always categorical
+    account_columns = [col for col in numerical_features if "account" in col]
+    numerical_features = numerical_features.difference(account_columns)
+    categorical_features = categorical_features.union(account_columns)
 
     transformer = ColumnTransformer(transformers=[
         # Encode categorical features using OrdinalEncoder

@@ -67,6 +67,20 @@ class UnitDataLoader:
             raise FileNotFoundError(f"'{file_path}' not found. Please check the path.")
 
     @staticmethod
+    def csvloader_specified(config, csv_specified):
+        file_path = f'{config.DATAPATH}{csv_specified}'
+        if os.path.exists(file_path):
+            print(f"Loading dataset from {file_path}")
+            # Read the CSV file into a temporary DataFrame
+            csv_data = pd.read_csv(file_path)
+            # Data structures are not guaranteed to be available
+            # need use specified uniter later
+            return csv_data
+        else:
+            # Raise an error if the file does not exist
+            raise FileNotFoundError(f"'{file_path}' not found. Please check the path.")
+
+    @staticmethod
     def dataloader_first(config, month):
         file_path = f'{config.DATAPATH}{config.ORI_ALL_CSV}'
         if os.path.exists(file_path):
@@ -103,4 +117,42 @@ class UnitDataLoader:
         else:
             # Raise an error if the file does not exist
             raise FileNotFoundError(f"'{file_path}' not found. Please check the path.")
+
+    @staticmethod
+    def datauniter_ibm(config, csv_data):
+        # Create an empty DataFrame with the standardized column structure
+        # STANDARD_INPUT_PARAM = ['Is_laundering',
+        #                         'Date', 'Time', 'Sender_account', 'Receiver_account', 'Amount',
+        #                         'Payment_currency', 'Received_currency', 'Payment_type']
+        # IBM
+        # 'Timestamp'
+        # 'From Bank'	'Account'
+        # 'To Bank'	'Account'
+        # 'Amount Received'	'Receiving Currency'
+        # 'Amount Paid'	'Payment Currency'
+        # 'Payment Format'
+        # 'Is Laundering'
+        # TODO: Element consistency (SAML:UK pounds == IBM:UK Pound)
+        data_set = pd.DataFrame(data=None, columns=config.STANDARD_INPUT_PARAM)
+        data_set['Is_laundering'] = csv_data['Is Laundering']
+
+        csv_data['Timestamp'] = pd.to_datetime(csv_data['Timestamp'])
+        data_set['Date'] = csv_data['Timestamp'].dt.date
+        data_set['Time'] = csv_data['Timestamp'].dt.time
+
+        csv_data['Sender_account'] = csv_data['From Bank'].astype(str) + csv_data['Account']
+        data_set['Sender_account'] = csv_data['Sender_account']
+
+        csv_data['Receiver_account'] = csv_data['To Bank'].astype(str) + csv_data['Account.1']
+        data_set['Receiver_account'] = csv_data['Receiver_account']
+
+        # 'Amount Received' and	'Amount Paid' almost same just use Paid data
+        data_set['Amount'] = csv_data['Amount Paid']
+
+        data_set['Payment_currency'] = csv_data['Payment Currency']
+        data_set['Received_currency'] = csv_data['Receiving Currency']
+
+        data_set['Payment_type'] = csv_data['Payment Format']
+
+        return data_set
 

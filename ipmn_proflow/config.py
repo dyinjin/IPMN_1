@@ -11,6 +11,7 @@ class Config:
         self.DATAPATH = f'{os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))}\\data\\'
 
         self.ORI_ALL_CSV = 'SAML-D.csv'
+        self.IBM_CSV = 'HI-Small_Trans.csv'
         # Random seed for reproducibility
         self.RANDOM_SEED = 42
 
@@ -28,7 +29,10 @@ class Config:
             'quick_test': 'quick_test',
             'all': 'all',
             'first_2': 'first_2',
-            'first_4': 'first_4'
+            'first_4': 'first_4',
+            'IBM': 'IBM',
+            'all_and_IBM': 'all_and_IBM',
+            'IBM_and_first_2': 'IBM_and_first_2',
         }
 
         # Parameter handling modes
@@ -46,8 +50,7 @@ class Config:
             'random_7_train_3_test': 'random_7_train_3_test',
             # 'cut_7_train_3_test': 'cut_7_train_3_test',
             'one_train_one_test': 'one_train_one_test',
-            'rest_train_one_test': 'rest_train_one_test',
-            'all_train_new_test': 'all_train_new_test'
+            'rest_train_one_test': 'rest_train_one_test'
         }
 
         # Hyperparameter grid for model tuning
@@ -57,7 +60,7 @@ class Config:
         }
 
         # Target true positive rate (TPR) for model evaluation
-        self.TPR = 0.95
+        self.TPR = 0.90
 
         # Predefined quick test dataset time configuration for quick-test
         self.QT_TRAIN_YEAR = 2022
