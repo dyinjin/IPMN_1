@@ -37,6 +37,7 @@ class Config:
             'time_date_division': 'time_date_division',
             'tdd_net_info_1': 'tdd_net_info_1',
             'tdd_net_info_2': 'tdd_net_info_2',
+            'tdd_net_info_3': 'tdd_net_info_3',
         }
 
         # Data balancing modes for splitting datasets
@@ -56,7 +57,7 @@ class Config:
         }
 
         # Target true positive rate (TPR) for model evaluation
-        self.TPR = 0.90
+        self.TPR = 0.95
 
         # Predefined quick test dataset time configuration for quick-test
         self.QT_TRAIN_YEAR = 2022

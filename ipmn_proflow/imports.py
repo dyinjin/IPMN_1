@@ -22,5 +22,4 @@ from xgboost import XGBClassifier
 from config import Config
 from unitdataloader import UnitDataLoader
 from balance import CustomBalance
-from parameter_handler.time_handler import date_apart
-from parameter_handler.net_info_handler import net_info_1, net_info_2
+from parameter_handler import *
