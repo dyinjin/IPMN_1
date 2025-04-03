@@ -1,4 +1,4 @@
-from ipmn_proflow.imports import *
+import pandas as pd
 
 
 def date_apart(dataset):

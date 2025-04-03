@@ -1,4 +1,4 @@
-from ipmn_proflow.imports import *
+from imports import *
 import pandas as pd
 
 

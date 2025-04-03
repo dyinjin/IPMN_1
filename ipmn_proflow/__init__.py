@@ -1,4 +1,4 @@
-from ipmn_proflow.imports import *
+from imports import *
 
 
 def main():
@@ -53,15 +53,19 @@ def main():
 
     # Perform data balancing based on mode specified in arguments
     print(f"Train/Test balanced by mode: {args.balance}")
-    if args.balance == config.BALANCE_MODES['random_73']:
+    if args.balance == config.BALANCE_MODES['random_7_train_3_test']:
         # Split dataset into training and testing sets with a 70-30 ratio
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=config.RANDOM_SEED)
-    elif args.balance == config.BALANCE_MODES['one_one']:
+    elif args.balance == config.BALANCE_MODES['one_train_one_test']:
         # must load dataset contain at least two months
         X_train, X_test, y_train, y_test = CustomBalance.one_train_one_test(data_set, config)
-    elif args.balance == config.BALANCE_MODES['rest_one']:
+    elif args.balance == config.BALANCE_MODES['rest_train_one_test']:
         # must load dataset contain at least two months
         X_train, X_test, y_train, y_test = CustomBalance.rest_train_one_test(data_set, config)
+    elif args.balance == config.BALANCE_MODES['all_train_new_test']:
+        pass
+        #
+        # X_train, X_test, y_train, y_test = CustomBalance.all_train_one_test(data_set, config)
         # TODO: Add support for more configuration options
     else:
         # Raise an error if balance mode is unsupported

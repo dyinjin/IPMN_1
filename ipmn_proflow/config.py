@@ -1,4 +1,4 @@
-from ipmn_proflow.imports import *
+from imports import *
 
 
 class Config:
@@ -42,10 +42,11 @@ class Config:
         # Data balancing modes for splitting datasets
         self.BALANCE_MODES = {
             # 'default': 'default',
-            'random_73': 'random_73',
-            # 'cut_73': 'cut_73',
-            'one_one': 'one_one',
-            'rest_one': 'rest_one'
+            'random_7_train_3_test': 'random_7_train_3_test',
+            # 'cut_7_train_3_test': 'cut_7_train_3_test',
+            'one_train_one_test': 'one_train_one_test',
+            'rest_train_one_test': 'rest_train_one_test',
+            'all_train_new_test': 'all_train_new_test'
         }
 
         # Hyperparameter grid for model tuning
@@ -98,7 +99,7 @@ class Config:
             '--balance',
             type=str,
             choices=self.BALANCE_MODES.values(),
-            default=self.BALANCE_MODES['random_73'],
+            default=self.BALANCE_MODES['random_7_train_3_test'],
             help='Specify balance mode.'
         )
 
