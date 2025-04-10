@@ -10,10 +10,13 @@ def main():
     args = config.parse_arguments()
 
     # flag 1: dataset do not need to divide to train/test, test_set specified
-    # flag 0: dataset need to divide/balance to train/test
+    # flag 0: dataset need to divide to train/test
     separate_set_flag = 0
 
     # Load dataset based on mode specified in arguments
+    """
+    Argument --dataset: Dataset Load mode
+    """
     print(f"Load dataset by mode: {args.dataset}")
     if args.dataset == config.DATASET_MODES['quick_test']:
         # Load quick program_test dataset using predefined year and month
@@ -29,13 +32,13 @@ def main():
         data_set = UnitDataLoader().csvloader_specified(config, config.IBM_CSV)
         data_set = UnitDataLoader().datauniter_ibm(config, data_set)
     elif args.dataset == config.DATASET_MODES['all_and_IBM']:
-        # no balance but define a specified test csv
+        # no divide but define a specified test csv
         separate_set_flag = 1
         data_set = UnitDataLoader().dataloader_all(config)
         test_set = UnitDataLoader().csvloader_specified(config, config.IBM_CSV)
         test_set = UnitDataLoader().datauniter_ibm(config, test_set)
-
     elif args.dataset == config.DATASET_MODES['IBM_and_first_2']:
+        # no divide but define a specified test csv
         separate_set_flag = 1
         data_set = UnitDataLoader().csvloader_specified(config, config.IBM_CSV)
         data_set = UnitDataLoader().datauniter_ibm(config, data_set)
@@ -45,6 +48,9 @@ def main():
         # Raise an error if dataset mode is unsupported
         raise AttributeError(f"Dataset mode '{args.dataset}' is not supported.")
 
+    """
+    Argument --param: Feature Parameter mode
+    """
     def parameter_adder(param_arg, dataset):
         if param_arg == config.PARAMETER_MODES['time_date_division']:
             # Split dataset by time and date
@@ -81,52 +87,66 @@ def main():
         # TODO: Add support for more configuration options
         else:
             # Raise an error if parameter handle mode is unsupported
-            raise AttributeError(f"Parameter handle mode '{args.param_h}' is not supported.")
+            raise AttributeError(f"Parameter handle mode '{args.param}' is not supported.")
         return dataset
 
     # Handle parameters based on mode specified in arguments
-    print(f"Parameter handle by mode: {args.param_h}")
-    data_set = parameter_adder(args.param_h, data_set)
+    print(f"Parameter handle by mode: {args.param}")
+    data_set = parameter_adder(args.param, data_set)
 
     # some account info mixed number and character
     for column in data_set.select_dtypes(include=['object']).columns:
         data_set[column] = data_set[column].astype(str)
 
-    # Perform data balancing based on mode specified in arguments
-    print(f"Train/Test balanced by mode: {args.balance}")
+    """
+    Argument --division: Train_set and Test_set Processing mode
+    """
+    # Perform data division based on mode specified in arguments
+    print(f"Train/Test divided by mode: {args.division}")
     if separate_set_flag:
-        # flag first detect. no balance need. do data_set thing again to test_set
-        print(f"Parameter in test handle by mode: {args.param_h}")
-        test_set = parameter_adder(args.param_h, test_set)
+        # flag first detect. no division need. do data_set thing again to test_set
+        print(f"Parameter in TEST also handle by mode: {args.param}")
+        test_set = parameter_adder(args.param, test_set)
         # some account info mixed number and character
         for column in test_set.select_dtypes(include=['object']).columns:
             test_set[column] = test_set[column].astype(str)
 
-        X_train = test_set.drop(columns=config.STANDARD_INPUT_LABEL)
-        y_train = test_set[config.STANDARD_INPUT_LABEL]
+        X_train = data_set.drop(columns=config.STANDARD_INPUT_LABEL)
+        y_train = data_set[config.STANDARD_INPUT_LABEL]
         X_test = test_set.drop(columns=config.STANDARD_INPUT_LABEL)
         y_test = test_set[config.STANDARD_INPUT_LABEL]
-    elif args.balance == config.BALANCE_MODES['random_7_train_3_test']:
+    elif args.division == config.DIVISION_MODES['random_7_train_3_test']:
         # Separate features (X) and labels (y)
         X = data_set.drop(columns=config.STANDARD_INPUT_LABEL)
         y = data_set[config.STANDARD_INPUT_LABEL]
         # Split dataset into training and testing sets with a 70-30 ratio
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=config.RANDOM_SEED)
-    elif args.balance == config.BALANCE_MODES['one_train_one_test']:
+    elif args.division == config.DIVISION_MODES['cut_7_train_3_test']:
+        # Separate features (X) and labels (y)
+        X = data_set.drop(columns=config.STANDARD_INPUT_LABEL)
+        y = data_set[config.STANDARD_INPUT_LABEL]
+        # Get the total number of rows
+        total_rows = len(data_set)
+        # Determine the split index
+        split_index = int(total_rows * 0.7)
+        # Split the dataset into training and testing sets based on the index
+        X_train, X_test = X.iloc[:split_index], X.iloc[split_index:]
+        y_train, y_test = y.iloc[:split_index], y.iloc[split_index:]
+    elif args.division == config.DIVISION_MODES['one_train_one_test']:
         # must load dataset contain at least two months
-        X_train, X_test, y_train, y_test = CustomBalance.one_train_one_test(data_set, config)
-    elif args.balance == config.BALANCE_MODES['rest_train_one_test']:
+        X_train, X_test, y_train, y_test = CustomDivision.one_train_one_test(data_set, config)
+    elif args.division == config.DIVISION_MODES['rest_train_one_test']:
         # must load dataset contain at least two months
-        X_train, X_test, y_train, y_test = CustomBalance.rest_train_one_test(data_set, config)
+        X_train, X_test, y_train, y_test = CustomDivision.rest_train_one_test(data_set, config)
         # TODO: Add support for more configuration options
     else:
-        # Raise an error if balance mode is unsupported
-        raise AttributeError(f"Balance mode '{args.balance}' is not supported.")
+        # Raise an error if division mode is unsupported
+        raise AttributeError(f"Division mode '{args.division}' is not supported.")
 
     # TODO: Implement model choice functionality
 
     # already divide in week day hour etc.
-    X_train.drop(columns=['Date', 'Timestamp'], inplace=True)
+    X_train = X_train.drop(columns=config.STANDARD_TIME_PARAM)
 
     # Process numerical and categorical features for classification models
     numerical_features = X_train.select_dtypes(exclude="object").columns
@@ -147,6 +167,24 @@ def main():
     # Apply transformations to training and testing datasets
     X_train = transformer.fit_transform(X_train)
     X_test = transformer.transform(X_test)
+
+    # balance mode should be here
+    print(f"Balance dataset by mode: {args.balance}")
+    if args.balance == config.BALANCE_MODES['default']:
+        # no balance
+        pass
+    elif args.balance == config.BALANCE_MODES['smote']:
+        # SMOTE
+        smote = SMOTE(random_state=config.RANDOM_SEED)
+        X_train, y_train = smote.fit_resample(X_train, y_train)
+
+    print(y_train.value_counts())
+
+    print("train set shape:")
+    print(X_train.shape)
+    print("test set shape:")
+    print(X_test.shape)
+
 
     # Perform hyperparameter tuning using grid search
     param_grid = config.PARAM_GRID

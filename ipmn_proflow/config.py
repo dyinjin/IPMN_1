@@ -21,15 +21,17 @@ class Config:
                                      'Payment_currency', 'Received_currency', 'Payment_type']
 
         # Label for classification tasks
-        self.STANDARD_INPUT_LABEL = 'Is_laundering'
+        self.STANDARD_INPUT_LABEL = ['Is_laundering']
+
+        self.STANDARD_TIME_PARAM = ['Date', 'Timestamp']
 
         # Dataset modes for argument selection
         self.DATASET_MODES = {
             # 'default': 'default',
             'quick_test': 'quick_test',
             'all': 'all',
-            'first_2': 'first_2',
-            'first_4': 'first_4',
+            'first_2': 'first_2',  # first 60 days' data
+            'first_4': 'first_4',  # first 120 days' data
             'IBM': 'IBM',
             'all_and_IBM': 'all_and_IBM',
             'IBM_and_first_2': 'IBM_and_first_2',
@@ -39,18 +41,27 @@ class Config:
         self.PARAMETER_MODES = {
             # 'default': 'default',
             'time_date_division': 'time_date_division',
+            # tdd stands for time_date_division
             'tdd_net_info_1': 'tdd_net_info_1',
             'tdd_net_info_2': 'tdd_net_info_2',
             'tdd_net_info_3': 'tdd_net_info_3',
         }
 
-        # Data balancing modes for splitting datasets
-        self.BALANCE_MODES = {
+        # Data division modes for splitting datasets
+        self.DIVISION_MODES = {
             # 'default': 'default',
             'random_7_train_3_test': 'random_7_train_3_test',
-            # 'cut_7_train_3_test': 'cut_7_train_3_test',
-            'one_train_one_test': 'one_train_one_test',
+            'cut_7_train_3_test': 'cut_7_train_3_test',
+            'one_train_one_test': 'one_train_one_test',  # one month(not 30 days) for train/test.
+            # Specific offset define by TRAIN_MONTH_OFFSET, TEST_MONTH_OFFSET
+
             'rest_train_one_test': 'rest_train_one_test'
+            # last month(not 30 days) data for test. rest data before the last month as train
+        }
+
+        self.BALANCE_MODES = {
+            'default': 'default',
+            'smote': 'smote',
         }
 
         # Hyperparameter grid for model tuning
@@ -60,7 +71,7 @@ class Config:
         }
 
         # Target true positive rate (TPR) for model evaluation
-        self.TPR = 0.90
+        self.TPR = 0.95
 
         # Predefined quick test dataset time configuration for quick-test
         self.QT_TRAIN_YEAR = 2022
@@ -73,7 +84,7 @@ class Config:
 
     def parse_arguments(self):
         """
-        Parse command-line arguments for dataset mode, parameter handling mode, and balance mode.
+        Parse command-line arguments for dataset mode, parameter handling mode, and divide mode.
 
         Returns:
             argparse.Namespace: Parsed command-line arguments.
@@ -91,19 +102,28 @@ class Config:
 
         # Parameter handling mode argument
         parser.add_argument(
-            '--param_h',
+            '--param',
             type=str,
             choices=self.PARAMETER_MODES.values(),
             default=self.PARAMETER_MODES['time_date_division'],
             help='Specify parameter handling mode.'
         )
 
-        # Data balancing mode argument
+        # Data division mode argument
+        parser.add_argument(
+            '--division',
+            type=str,
+            choices=self.DIVISION_MODES.values(),
+            default=self.DIVISION_MODES['random_7_train_3_test'],
+            help='Specify division mode.'
+        )
+
+        # Data balance mode argument
         parser.add_argument(
             '--balance',
             type=str,
             choices=self.BALANCE_MODES.values(),
-            default=self.BALANCE_MODES['random_7_train_3_test'],
+            default=self.BALANCE_MODES['default'],
             help='Specify balance mode.'
         )
 

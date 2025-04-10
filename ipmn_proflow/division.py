@@ -2,7 +2,7 @@ from imports import *
 import pandas as pd
 
 
-class CustomBalance:
+class CustomDivision:
     @staticmethod
     def get_month_data(dataset, month_start, month_end):
         """
@@ -49,8 +49,8 @@ class CustomBalance:
         test_start = pd.Timestamp(start_date.year, start_date.month, 1) + pd.DateOffset(months=test_offset - 1)
         test_end = test_start + pd.DateOffset(months=1)
 
-        train_set = CustomBalance.get_month_data(data_set, train_start, train_end)
-        test_set = CustomBalance.get_month_data(data_set, test_start, test_end)
+        train_set = CustomDivision.get_month_data(data_set, train_start, train_end)
+        test_set = CustomDivision.get_month_data(data_set, test_start, test_end)
 
         # Efficiently drop label column and use .loc[]
         X_train = train_set.drop(columns=[label_column])
@@ -85,8 +85,8 @@ class CustomBalance:
         last_month_start = pd.Timestamp(last_date.year, last_date.month, 1)
         next_month_start = last_month_start + pd.DateOffset(months=1)
 
-        train_set = CustomBalance.get_month_data(data_set, start_date, last_month_start)
-        test_set = CustomBalance.get_month_data(data_set, last_month_start, next_month_start)
+        train_set = CustomDivision.get_month_data(data_set, start_date, last_month_start)
+        test_set = CustomDivision.get_month_data(data_set, last_month_start, next_month_start)
 
         X_train = train_set.drop(columns=[label_column])
         y_train = train_set.loc[:, label_column]

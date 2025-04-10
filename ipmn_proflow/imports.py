@@ -17,9 +17,10 @@ from sklearn.impute import SimpleImputer
 from sklearn.metrics import (classification_report, confusion_matrix, accuracy_score,
                              roc_auc_score, roc_curve, f1_score)
 from xgboost import XGBClassifier
+from imblearn.over_sampling import SMOTE
 
 # custom
 from config import Config
 from unitdataloader import UnitDataLoader
-from balance import CustomBalance
+from division import CustomDivision
 from parameter_handler import *
