@@ -8,7 +8,7 @@ class Config:
 
     def __init__(self):
         # Path to the data directory
-        self.DATAPATH = f'{os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))}\\data\\'
+        self.DATAPATH = f'{os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))}/data/'
 
         self.ORI_ALL_CSV = 'SAML-D.csv'
         self.IBM_CSV = 'HI-Small_Trans.csv'

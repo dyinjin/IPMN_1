@@ -53,10 +53,10 @@ class CustomDivision:
         test_set = CustomDivision.get_month_data(data_set, test_start, test_end)
 
         # Efficiently drop label column and use .loc[]
-        X_train = train_set.drop(columns=[label_column])
-        y_train = train_set.loc[:, label_column]
-        X_test = test_set.drop(columns=[label_column])
-        y_test = test_set.loc[:, label_column]
+        X_train = train_set.drop(columns=label_column)
+        y_train = train_set[label_column]
+        X_test = test_set.drop(columns=label_column)
+        y_test = test_set[label_column]
 
         return X_train, X_test, y_train, y_test
 
@@ -88,9 +88,9 @@ class CustomDivision:
         train_set = CustomDivision.get_month_data(data_set, start_date, last_month_start)
         test_set = CustomDivision.get_month_data(data_set, last_month_start, next_month_start)
 
-        X_train = train_set.drop(columns=[label_column])
-        y_train = train_set.loc[:, label_column]
-        X_test = test_set.drop(columns=[label_column])
-        y_test = test_set.loc[:, label_column]
+        X_train = train_set.drop(columns=label_column)
+        y_train = train_set[label_column]
+        X_test = test_set.drop(columns=label_column)
+        y_test = test_set[label_column]
 
         return X_train, X_test, y_train, y_test
