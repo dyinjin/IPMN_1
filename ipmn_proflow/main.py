@@ -6,12 +6,9 @@ def main():
     Main function to execute the program logic.
     """
     print("Program Start")
+    print("Loading Config")
     config = Config()
     args = config.parse_arguments()
-
-    # flag 1: dataset do not need to divide to train/test, test_set specified
-    # flag 0: dataset need to divide to train/test
-    separate_set_flag = 0
 
     # Load dataset based on mode specified in arguments
     """
@@ -19,34 +16,33 @@ def main():
     """
     print(f"Load dataset by mode: {args.dataset}")
     if args.dataset == config.DATASET_MODES['quick_test']:
-        # Load quick program_test dataset using predefined year and month
-        data_set = UnitDataLoader().dataloader_year_month(config, config.QT_TRAIN_YEAR, config.QT_TRAIN_MONTH)
-        print("Dataset loaded successfully.")
-    elif args.dataset == config.DATASET_MODES['all']:
-        data_set = UnitDataLoader().dataloader_all(config)
-    elif args.dataset == config.DATASET_MODES['first_2']:
-        data_set = UnitDataLoader().dataloader_first(config, 2)
-    elif args.dataset == config.DATASET_MODES['first_4']:
-        data_set = UnitDataLoader().dataloader_first(config, 4)
-    elif args.dataset == config.DATASET_MODES['IBM']:
-        data_set = UnitDataLoader().csvloader_specified(config, config.IBM_CSV)
-        data_set = UnitDataLoader().datauniter_ibm(config, data_set)
-    elif args.dataset == config.DATASET_MODES['all_and_IBM']:
-        # no divide but define a specified test csv
-        separate_set_flag = 1
-        data_set = UnitDataLoader().dataloader_all(config)
-        test_set = UnitDataLoader().csvloader_specified(config, config.IBM_CSV)
-        test_set = UnitDataLoader().datauniter_ibm(config, test_set)
-    elif args.dataset == config.DATASET_MODES['IBM_and_first_2']:
-        # no divide but define a specified test csv
-        separate_set_flag = 1
-        data_set = UnitDataLoader().csvloader_specified(config, config.IBM_CSV)
-        data_set = UnitDataLoader().datauniter_ibm(config, data_set)
-        test_set = UnitDataLoader().dataloader_first(config, 2)
+        train_set = UnitDataLoader.dataloader_between(config, config.QT_TRAIN_START, config.QT_TRAIN_END)
+        test_set = UnitDataLoader.dataloader_between(config, config.QT_TEST_START, config.QT_TEST_END)
+    elif args.dataset == config.DATASET_MODES['all_d73']:
+        data_set = UnitDataLoader.dataloader_all(config)
+        split_index = int(len(data_set) * 0.7)
+        train_set, test_set = data_set.iloc[:split_index], data_set.iloc[split_index:]
+    elif args.dataset == config.DATASET_MODES['first_2_d73']:
+        data_set = UnitDataLoader.dataloader_first(config, 2)
+        split_index = int(len(data_set) * 0.7)
+        train_set, test_set = data_set.iloc[:split_index], data_set.iloc[split_index:]
+    elif args.dataset == config.DATASET_MODES['first_4_d73']:
+        data_set = UnitDataLoader.dataloader_first(config, 4)
+        split_index = int(len(data_set) * 0.7)
+        train_set, test_set = data_set.iloc[:split_index], data_set.iloc[split_index:]
+    # elif args.dataset == config.DATASET_MODES['IBM_d73']:
+    # elif args.dataset == config.DATASET_MODES['one_train_one_test']:
+    # elif args.dataset == config.DATASET_MODES['one_train_one_test']:
+    # elif args.dataset == config.DATASET_MODES['all_train_IBM_test']:
+    # elif args.dataset == config.DATASET_MODES['specific_train_specific_test']:
     # TODO: Add support for more configuration options
     else:
         # Raise an error if dataset mode is unsupported
         raise AttributeError(f"Dataset mode '{args.dataset}' is not supported.")
+
+    # reset index
+    train_set = train_set.reset_index(drop=True)
+    test_set = test_set.reset_index(drop=True)
 
     """
     Argument --param: Feature Parameter mode
@@ -90,63 +86,34 @@ def main():
             raise AttributeError(f"Parameter handle mode '{args.param}' is not supported.")
         return dataset
 
+    y_train = train_set[config.STANDARD_INPUT_LABEL]
+    y_test = test_set[config.STANDARD_INPUT_LABEL]
+    X_train = train_set.drop(columns=config.STANDARD_INPUT_LABEL)
+    X_test = test_set.drop(columns=config.STANDARD_INPUT_LABEL)
+
     # Handle parameters based on mode specified in arguments
     print(f"Parameter handle by mode: {args.param}")
-    data_set = parameter_adder(args.param, data_set)
-
-    # some account info mixed number and character
-    for column in data_set.select_dtypes(include=['object']).columns:
-        data_set[column] = data_set[column].astype(str)
-
-    """
-    Argument --division: Train_set and Test_set Processing mode
-    """
-    # Perform data division based on mode specified in arguments
-    print(f"Train/Test divided by mode: {args.division}")
-    if separate_set_flag:
-        # flag first detect. no division need. do data_set thing again to test_set
-        print(f"Parameter in TEST also handle by mode: {args.param}")
-        test_set = parameter_adder(args.param, test_set)
-        # some account info mixed number and character
-        for column in test_set.select_dtypes(include=['object']).columns:
-            test_set[column] = test_set[column].astype(str)
-
-        X_train = data_set.drop(columns=config.STANDARD_INPUT_LABEL)
-        y_train = data_set[config.STANDARD_INPUT_LABEL]
-        X_test = test_set.drop(columns=config.STANDARD_INPUT_LABEL)
-        y_test = test_set[config.STANDARD_INPUT_LABEL]
-    elif args.division == config.DIVISION_MODES['random_7_train_3_test']:
-        # Separate features (X) and labels (y)
-        X = data_set.drop(columns=config.STANDARD_INPUT_LABEL)
-        y = data_set[config.STANDARD_INPUT_LABEL]
-        # Split dataset into training and testing sets with a 70-30 ratio
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=config.RANDOM_SEED)
-    elif args.division == config.DIVISION_MODES['cut_7_train_3_test']:
-        # Separate features (X) and labels (y)
-        X = data_set.drop(columns=config.STANDARD_INPUT_LABEL)
-        y = data_set[config.STANDARD_INPUT_LABEL]
-        # Get the total number of rows
-        total_rows = len(data_set)
-        # Determine the split index
-        split_index = int(total_rows * 0.7)
-        # Split the dataset into training and testing sets based on the index
-        X_train, X_test = X.iloc[:split_index], X.iloc[split_index:]
-        y_train, y_test = y.iloc[:split_index], y.iloc[split_index:]
-    elif args.division == config.DIVISION_MODES['one_train_one_test']:
-        # must load dataset contain at least two months
-        X_train, X_test, y_train, y_test = CustomDivision.one_train_one_test(data_set, config)
-    elif args.division == config.DIVISION_MODES['rest_train_one_test']:
-        # must load dataset contain at least two months
-        X_train, X_test, y_train, y_test = CustomDivision.rest_train_one_test(data_set, config)
-        # TODO: Add support for more configuration options
-    else:
-        # Raise an error if division mode is unsupported
-        raise AttributeError(f"Division mode '{args.division}' is not supported.")
-
-    # TODO: Implement model choice functionality
+    X_train = parameter_adder(args.param, X_train)
+    X_test = parameter_adder(args.param, X_test)
 
     # already divide in week day hour etc.
     X_train = X_train.drop(columns=config.STANDARD_TIME_PARAM)
+    X_test = X_test.drop(columns=config.STANDARD_TIME_PARAM)
+
+    # show final train/test columns
+    # print(X_train.columns)
+    # print(X_test.columns)
+
+    # # TODO config save or not by args
+    # # save train/test X/y to csv
+    # X_train.to_csv(f"{config.DATAPATH}{args.dataset}-{args.param}-X_train.csv", index=False)
+    # X_test.to_csv(f"{config.DATAPATH}{args.dataset}-{args.param}-X_test.csv", index=False)
+    # y_train.to_csv(f"{config.DATAPATH}{args.dataset}-{args.param}-y_train.csv", index=False)
+    # y_test.to_csv(f"{config.DATAPATH}{args.dataset}-{args.param}-y_test.csv", index=False)
+    #
+    # # save train/test set to csv
+    # pd.concat([X_train, y_train], axis=1).to_csv(f"{config.DATAPATH}{args.dataset}-{args.param}-X_train_with_y.csv", index=False)
+    # pd.concat([X_test, y_test], axis=1).to_csv(f"{config.DATAPATH}{args.dataset}-{args.param}-X_test_with_y.csv", index=False)
 
     # Process numerical and categorical features for classification models
     numerical_features = X_train.select_dtypes(exclude="object").columns
@@ -157,6 +124,7 @@ def main():
     numerical_features = numerical_features.difference(account_columns)
     categorical_features = categorical_features.union(account_columns)
 
+    # TODO: Implement model choice functionality
     transformer = ColumnTransformer(transformers=[
         # Encode categorical features using OrdinalEncoder
         ("OrdinalEncoder", OrdinalEncoder(handle_unknown='use_encoded_value', unknown_value=-1), categorical_features),
@@ -168,38 +136,65 @@ def main():
     X_train = transformer.fit_transform(X_train)
     X_test = transformer.transform(X_test)
 
-    # balance mode should be here
-    print(f"Balance dataset by mode: {args.balance}")
-    if args.balance == config.BALANCE_MODES['default']:
-        # no balance
-        pass
-    elif args.balance == config.BALANCE_MODES['smote']:
-        # SMOTE
-        smote = SMOTE(random_state=config.RANDOM_SEED)
-        X_train, y_train = smote.fit_resample(X_train, y_train)
-
+    print("train set laundering count:")
     print(y_train.value_counts())
+    print("test set laundering count:")
+    print(y_test.value_counts())
 
-    print("train set shape:")
+    print("train set transformer shape:")
     print(X_train.shape)
-    print("test set shape:")
+    print("test set transformer shape:")
     print(X_test.shape)
 
 
-    # Perform hyperparameter tuning using grid search
-    param_grid = config.PARAM_GRID
+    # TODO model config by args
     xgb = XGBClassifier(eval_metric='logloss', random_state=42)
+    param_grid = config.PARAM_GRID
+    grid_search = GridSearchCV(estimator=xgb, param_grid=param_grid, scoring='roc_auc', cv=2, verbose=2)
 
-    grid_search = GridSearchCV(
-        estimator=xgb,
-        param_grid=param_grid,
-        scoring='roc_auc',
-        cv=2,
-        verbose=2
-    )
+    # rf = RandomForestClassifier()
+    # param_grid = {"n_estimators": [50], "max_depth": [10]}
+    #
+    # grid_search = GridSearchCV(estimator=rf, param_grid=param_grid, scoring="roc_auc", cv=2, verbose=2)
+
+    # nn = MLPClassifier(max_iter=500, random_state=42)
+    #
+    # # 定义超参数搜索空间
+    # param_grid = {
+    #     "hidden_layer_sizes": [(64, 32)],  # 隐藏层结构
+    #     "activation": ["relu", "tanh"],  # 激活函数
+    #     "solver": ["adam"],  # 优化器
+    #     "alpha": [0.01]  # L2 正则化强度
+    # }
+    #
+    # # 进行超参数搜索
+    # grid_search = GridSearchCV(estimator=nn, param_grid=param_grid, scoring="roc_auc", cv=2, verbose=2)
+
+    # lr = LogisticRegression()
+    # param_grid = {"C": [0.1, 1, 10]}
+    #
+    # grid_search = GridSearchCV(estimator=lr, param_grid=param_grid, scoring="roc_auc", cv=2, verbose=2)
+
+
+    # svc = SVC(probability=True)
+    # param_grid = {"C": [0.1, 1, 10], "kernel": ["linear", "rbf"]}
+    #
+    # grid_search = GridSearchCV(estimator=svc, param_grid=param_grid, scoring="roc_auc", cv=2, verbose=2)
+
+
+    # mlp = MLPClassifier()
+    # param_grid = {"hidden_layer_sizes": [(20,)], "alpha": [0.001]}
+    #
+    # grid_search = GridSearchCV(estimator=mlp, param_grid=param_grid, scoring="roc_auc", cv=2, verbose=2)
+
+
+    # knn = KNeighborsClassifier()
+    # param_grid = {"n_neighbors": [3, 5, 10], "weights": ["uniform", "distance"]}
+    #
+    # grid_search = GridSearchCV(estimator=knn, param_grid=param_grid, scoring="roc_auc", cv=2, verbose=2)
 
     # Train the model with grid search
-    grid_search.fit(X_train, y_train)
+    grid_search.fit(X_train, y_train.values.ravel())
     print("Best Parameters: ", grid_search.best_params_)
     best_model = grid_search.best_estimator_
 
@@ -249,6 +244,30 @@ def main():
 
     # Print classification report for detailed model evaluation
     print(classification_report(y_test, y_pred))
+
+    # TODO config save or not by args
+    # save train test set to csv
+    # pd.DataFrame(y_pred).to_csv(f"{config.DATAPATH}{args.dataset}-{args.param}-{args.division}-y_pred.csv", index=False)
+
+    # # 用于RF的参数重要性分析
+    # rf = RandomForestClassifier(n_estimators=50, max_depth=10)
+    # rf.fit(X_train, y_train.values.ravel())
+    # feature_importance = rf.feature_importances_
+    # # 将特征名称和重要性存入 DataFrame 进行排序
+    # feature_names = [f"Feature_{i}" for i in range(X_train.shape[1])]  # 自动生成特征名
+    # importance_df = pd.DataFrame({"Feature": feature_names, "Importance": feature_importance})
+    # importance_df = importance_df.sort_values(by="Importance", ascending=False)
+    # # 打印特征重要性
+    # print("特征重要性排名：")
+    # print(importance_df)
+    # # 可视化特征重要性
+    # plt.figure(figsize=(10, 6))
+    # plt.barh(importance_df["Feature"], importance_df["Importance"], color="royalblue")
+    # plt.xlabel("Importance Score")
+    # plt.ylabel("Feature")
+    # plt.title("Feature Importance in Random Forest")
+    # plt.gca().invert_yaxis()  # 最高重要性的特征放在顶部
+    # plt.show()
 
 
 if __name__ == '__main__':
