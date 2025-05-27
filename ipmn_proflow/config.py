@@ -41,11 +41,17 @@ class Config:
 
         # Parameter handling modes
         self.PARAMETER_MODES = {
-            'time_date_division': 'time_date_division',
+            'tdd_net_info_0': 'tdd_net_info_0',
             'tdd_net_info_1': 'tdd_net_info_1',
             'tdd_net_info_2': 'tdd_net_info_2',
             'tdd_net_info_3': 'tdd_net_info_3',
+            'tdd_net_info_4': 'tdd_net_info_4',
+            'tdd_net_info_5': 'tdd_net_info_5',
+            'tdd_net_info_6': 'tdd_net_info_6',
+            'tdd_net_info_7': 'tdd_net_info_7',
         }
+
+        self.WINDOW_SIZE = 7
 
         # Hyperparameter grid for XGBoost model tuning
         self.PARAM_GRID = {
@@ -56,11 +62,11 @@ class Config:
         # Target true positive rate (TPR) for model evaluation
         self.TPR = 0.95
 
-        # Predefined quick test dataset time configuration for quick-test
-        self.QT_TRAIN_START = '2022/10/01'
-        self.QT_TRAIN_END = '2022/10/31'
-        self.QT_TEST_START = '2023/03/01'
-        self.QT_TEST_END = '2023/03/07'
+        # Predefined quick test dataset time configuration
+        self.QT_TRAIN_START = '2022/11/01'
+        self.QT_TRAIN_END = '2022/11/30'
+        self.QT_TEST_START = '2023/07/01'
+        self.QT_TEST_END = '2023/07/31'
 
     def parse_arguments(self):
         """
@@ -85,7 +91,7 @@ class Config:
             '--param',
             type=str,
             choices=self.PARAMETER_MODES.values(),
-            default=self.PARAMETER_MODES['time_date_division'],
+            default=self.PARAMETER_MODES['tdd_net_info_0'],
             help='Specify parameter handling mode.'
         )
 

@@ -30,7 +30,8 @@ def main():
         data_set = UnitDataLoader.dataloader_first(config, 4)
         split_index = int(len(data_set) * 0.7)
         train_set, test_set = data_set.iloc[:split_index], data_set.iloc[split_index:]
-    # elif args.dataset == config.DATASET_MODES['IBM_d73']:
+    elif args.dataset == config.DATASET_MODES['IBM_d73']:
+        UnitDataLoader.csvloader_specified()
     # elif args.dataset == config.DATASET_MODES['one_train_one_test']:
     # elif args.dataset == config.DATASET_MODES['one_train_one_test']:
     # elif args.dataset == config.DATASET_MODES['all_train_IBM_test']:
@@ -48,38 +49,45 @@ def main():
     Argument --param: Feature Parameter mode
     """
     def parameter_adder(param_arg, dataset):
-        if param_arg == config.PARAMETER_MODES['time_date_division']:
+        if param_arg == config.PARAMETER_MODES['tdd_net_info_0']:
             # Split dataset by time and date
             dataset = date_apart(dataset)
             print("PARAMETER ADDED: date/time parameter divide")
         elif param_arg == config.PARAMETER_MODES['tdd_net_info_1']:
-            # Perform time-date division
             dataset = date_apart(dataset)
             print("PARAMETER ADDED: date/time parameter divide")
-            # Add additional network information
             dataset = net_info_tic(dataset)
             print("PARAMETER ADDED: transaction time counter")
         elif param_arg == config.PARAMETER_MODES['tdd_net_info_2']:
-            # Perform time-date division
             dataset = date_apart(dataset)
             print("PARAMETER ADDED: date/time parameter divide")
-            # Add additional network information
-            dataset = net_info_tic(dataset)
-            print("PARAMETER ADDED: transaction time counter")
-            dataset = net_info_rtw(dataset)
-            print("PARAMETER ADDED: recently trans with other account")
+            dataset = net_info_rti(dataset)
+            print("PARAMETER ADDED: association transaction info")
         elif param_arg == config.PARAMETER_MODES['tdd_net_info_3']:
-            # Perform time-date division
             dataset = date_apart(dataset)
             print("PARAMETER ADDED: date/time parameter divide")
-            # Add additional network information
-            dataset = net_info_tic(dataset)
-            print("PARAMETER ADDED: transaction time counter")
-            dataset = net_info_rtw(dataset)
-            print("PARAMETER ADDED: recently trans with other account")
-            # TODO NEW PARAMETER: recently trans with other account gap how long?
             dataset = net_info_3centrality(dataset)
-            print("PARAMETER ADDED: three kinds of graph centrality")
+            print("PARAMETER ADDED: three graph features")
+        elif param_arg == config.PARAMETER_MODES['tdd_net_info_4']:
+            dataset = date_apart(dataset)
+            print("PARAMETER ADDED: date/time parameter divide")
+            dataset = net_info_before(dataset, config.WINDOW_SIZE)
+            print("PARAMETER ADDED: before transaction info")
+        elif param_arg == config.PARAMETER_MODES['tdd_net_info_5']:
+            dataset = date_apart(dataset)
+            print("PARAMETER ADDED: date/time parameter divide")
+            dataset = net_info_before_with_graph(dataset, config.WINDOW_SIZE)
+            print("PARAMETER ADDED: before transaction info with child graph")
+        elif param_arg == config.PARAMETER_MODES['tdd_net_info_6']:
+            dataset = date_apart(dataset)
+            print("PARAMETER ADDED: date/time parameter divide")
+            dataset = net_info_slider(dataset, config.WINDOW_SIZE)
+            print("PARAMETER ADDED: before transaction info")
+        elif param_arg == config.PARAMETER_MODES['tdd_net_info_7']:
+            dataset = date_apart(dataset)
+            print("PARAMETER ADDED: date/time parameter divide")
+            dataset = net_info_slider_with_graph(dataset, config.WINDOW_SIZE)
+            print("PARAMETER ADDED: before transaction info with child graph")
         # TODO: Add support for more configuration options
         else:
             # Raise an error if parameter handle mode is unsupported
@@ -104,13 +112,13 @@ def main():
     # print(X_train.columns)
     # print(X_test.columns)
 
-    # # TODO config save or not by args
-    # # save train/test X/y to csv
-    # X_train.to_csv(f"{config.DATAPATH}{args.dataset}-{args.param}-X_train.csv", index=False)
-    # X_test.to_csv(f"{config.DATAPATH}{args.dataset}-{args.param}-X_test.csv", index=False)
-    # y_train.to_csv(f"{config.DATAPATH}{args.dataset}-{args.param}-y_train.csv", index=False)
-    # y_test.to_csv(f"{config.DATAPATH}{args.dataset}-{args.param}-y_test.csv", index=False)
-    #
+    # TODO config save or not by args
+    # save train/test X/y to csv
+    X_train.to_csv(f"{config.DATAPATH}{args.dataset}-{args.param}-X_train.csv", index=False)
+    X_test.to_csv(f"{config.DATAPATH}{args.dataset}-{args.param}-X_test.csv", index=False)
+    y_train.to_csv(f"{config.DATAPATH}{args.dataset}-{args.param}-y_train.csv", index=False)
+    y_test.to_csv(f"{config.DATAPATH}{args.dataset}-{args.param}-y_test.csv", index=False)
+
     # # save train/test set to csv
     # pd.concat([X_train, y_train], axis=1).to_csv(f"{config.DATAPATH}{args.dataset}-{args.param}-X_train_with_y.csv", index=False)
     # pd.concat([X_test, y_test], axis=1).to_csv(f"{config.DATAPATH}{args.dataset}-{args.param}-X_test_with_y.csv", index=False)
@@ -268,6 +276,8 @@ def main():
     # plt.title("Feature Importance in Random Forest")
     # plt.gca().invert_yaxis()  # 最高重要性的特征放在顶部
     # plt.show()
+
+    # TODO: work mode data input to model and predict
 
 
 if __name__ == '__main__':
