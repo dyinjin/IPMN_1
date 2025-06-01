@@ -2,7 +2,6 @@ import pandas as pd
 
 df = pd.read_csv('../data/SAML-D.csv')
 
-# date separate
 df['Date'] = pd.to_datetime(df['Date'], format='%Y-%m-%d')
 
 separate_dict = {}

@@ -35,4 +35,6 @@ def date_apart(dataset):
     # Drop the original 'Time' column to save memory
     dataset.drop(columns=['Time'], inplace=True)
 
+    print("PARAMETER ADDED: date/time parameter divide")
+
     return dataset

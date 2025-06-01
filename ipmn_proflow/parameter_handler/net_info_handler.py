@@ -2,7 +2,247 @@ import igraph as ig
 import numpy as np
 import pandas as pd
 from collections import defaultdict, deque
-# import cugraph
+
+
+def window_before(dataset, window_days):
+    """
+    按时间窗口划分数据，并分别调用 net_info_rti() 进行处理
+    :param dataset: 原始交易数据集
+    :param window_days: 时间窗口天数
+    :return: 处理后的数据集
+    """
+
+    start_date = dataset["Date"].min()
+    end_date = dataset["Date"].max()
+    total_days = (end_date - start_date).days + 1
+
+    processed_dfs = []  # 存储每个时间窗口处理后的数据
+
+    # 逐步处理时间窗口
+    for i in range(0, total_days, window_days):
+        window_start = start_date + pd.Timedelta(days=i)
+        window_end = min(start_date + pd.Timedelta(days=i + window_days - 1), end_date)
+
+        # 过滤出当前时间窗口的数据
+        window_df = dataset[(dataset["Date"] >= window_start) & (dataset["Date"] <= window_end)].copy()
+        print(f"window df length:{len(window_df)}")
+
+        # 仅在窗口数据非空时处理
+        if not window_df.empty:
+            processed_window_df = net_info_rti(window_df)
+            processed_dfs.append(processed_window_df)
+
+    # 合并所有处理后的数据
+    final_dataset = pd.concat(processed_dfs, ignore_index=True)
+    return final_dataset
+
+
+def window_before_graph(dataset, window_days):
+    start_date = dataset["Date"].min()
+    end_date = dataset["Date"].max()
+    total_days = (end_date - start_date).days + 1
+
+    processed_dfs = []  # 存储每个时间窗口处理后的数据
+
+    # 逐步处理时间窗口
+    for i in range(0, total_days, window_days):
+        window_start = start_date + pd.Timedelta(days=i)
+        window_end = min(start_date + pd.Timedelta(days=i + window_days - 1), end_date)
+
+        # 过滤出当前时间窗口的数据
+        window_df = dataset[(dataset["Date"] >= window_start) & (dataset["Date"] <= window_end)].copy()
+        print(f"window df length:{len(window_df)}")
+
+        # 仅在窗口数据非空时处理
+        if not window_df.empty:
+            processed_window_df = net_info_3centrality(window_df)
+            processed_dfs.append(processed_window_df)
+            del processed_window_df
+
+    # 合并所有处理后的数据
+    final_dataset = pd.concat(processed_dfs, ignore_index=True)
+    del processed_dfs
+    return final_dataset
+
+
+def window_before_inte(dataset, window_days):
+    start_date = dataset["Date"].min()
+    end_date = dataset["Date"].max()
+    total_days = (end_date - start_date).days + 1
+
+    processed_dfs = []  # 存储每个时间窗口处理后的数据
+
+    # 逐步处理时间窗口
+    for i in range(0, total_days, window_days):
+        window_start = start_date + pd.Timedelta(days=i)
+        window_end = min(start_date + pd.Timedelta(days=i + window_days - 1), end_date)
+
+        # 过滤出当前时间窗口的数据
+        window_df = dataset[(dataset["Date"] >= window_start) & (dataset["Date"] <= window_end)].copy()
+        print(f"window df length:{len(window_df)}")
+
+        # 仅在窗口数据非空时处理
+        if not window_df.empty:
+            processed_window_df = net_info_3centrality(window_df)
+            processed_window_df = net_info_rti(processed_window_df)
+            processed_dfs.append(processed_window_df)
+            del processed_window_df
+
+    # 合并所有处理后的数据
+    final_dataset = pd.concat(processed_dfs, ignore_index=True)
+    del processed_dfs
+    return final_dataset
+
+
+def window_slider(dataset, window_days):
+    """
+    滑动窗口计算交易统计信息，并确保后续窗口计算结果正确覆盖已有数据，而不产生新行
+    """
+    dataset[
+        ['Sender_send_amount', 'Sender_send_count', 'Sender_send_frequency', 'Receiver_receive_amount',
+         'Receiver_receive_count', 'Receiver_receive_frequency', 'Sender_receive_amount', 'Sender_receive_count',
+         'Sender_receive_frequency', 'Receiver_send_amount', 'Receiver_send_count', 'Receiver_send_frequency']
+    ] = 0.0
+    start_date = dataset["Date"].min()
+    end_date = dataset["Date"].max()
+    total_days = (end_date - start_date).days + 1
+
+    # 滑动窗口计算
+    for i in range(total_days - window_days + 1):  # 控制窗口滑动范围
+        window_start = start_date + pd.Timedelta(days=i)
+        window_end = window_start + pd.Timedelta(days=window_days - 1)
+
+        window_df = dataset[(dataset["Date"] >= window_start) & (dataset["Date"] <= window_end)].copy()
+        print(f"window df length:{len(window_df)}")
+
+        # 仅在窗口数据非空时处理
+        if not window_df.empty:
+            processed_window_df = net_info_rti(window_df[['Date', 'Sender_account', 'Receiver_account', 'Amount']])
+            processed_window_df = processed_window_df.set_index(window_df.index)
+
+            # print(dataset.shape)
+            # print(processed_window_df.shape)
+            # dataset = dataset.combine_first(processed_window_df)
+            dataset.update(processed_window_df)
+
+            del processed_window_df
+        del window_df
+
+    return dataset
+
+
+def window_slider_graph(dataset, window_days):
+    dataset[
+        ['sender_account_degree_centrality', 'sender_account_closeness_centrality',
+         'sender_account_betweenness_centrality', 'receiver_account_degree_centrality',
+         'receiver_account_closeness_centrality', 'receiver_account_betweenness_centrality']
+    ] = 0.0
+    start_date = dataset["Date"].min()
+    end_date = dataset["Date"].max()
+    total_days = (end_date - start_date).days + 1
+
+    # 滑动窗口计算
+    for i in range(total_days - window_days + 1):  # 控制窗口滑动范围
+        window_start = start_date + pd.Timedelta(days=i)
+        window_end = window_start + pd.Timedelta(days=window_days - 1)
+
+        window_df = dataset[(dataset["Date"] >= window_start) & (dataset["Date"] <= window_end)].copy()
+        print(f"window df length:{len(window_df)}")
+
+        # 仅在窗口数据非空时处理
+        if not window_df.empty:
+            processed_window_df = net_info_3centrality(window_df[['Date', 'Sender_account', 'Receiver_account', 'Amount']])
+            processed_window_df = processed_window_df.set_index(window_df.index)
+            dataset.update(processed_window_df)
+            del processed_window_df
+        del window_df
+
+    return dataset
+
+
+def window_slider_inte(dataset, window_days):
+    dataset[
+        ['Sender_send_amount', 'Sender_send_count', 'Sender_send_frequency', 'Receiver_receive_amount',
+         'Receiver_receive_count', 'Receiver_receive_frequency', 'Sender_receive_amount', 'Sender_receive_count',
+         'Sender_receive_frequency', 'Receiver_send_amount', 'Receiver_send_count', 'Receiver_send_frequency',
+         'sender_account_degree_centrality', 'sender_account_closeness_centrality',
+         'sender_account_betweenness_centrality', 'receiver_account_degree_centrality',
+         'receiver_account_closeness_centrality', 'receiver_account_betweenness_centrality']
+    ] = 0.0
+    start_date = dataset["Date"].min()
+    end_date = dataset["Date"].max()
+    total_days = (end_date - start_date).days + 1
+
+    # 滑动窗口计算
+    for i in range(total_days - window_days + 1):  # 控制窗口滑动范围
+        window_start = start_date + pd.Timedelta(days=i)
+        window_end = window_start + pd.Timedelta(days=window_days - 1)
+
+        window_df = dataset[(dataset["Date"] >= window_start) & (dataset["Date"] <= window_end)].copy()
+        print(f"window df length:{len(window_df)}")
+
+        # 仅在窗口数据非空时处理
+        if not window_df.empty:
+            processed_window_df = net_info_rti(window_df[['Date', 'Sender_account', 'Receiver_account', 'Amount']])
+            processed_window_df = processed_window_df.set_index(window_df.index)
+            dataset.update(processed_window_df)
+            del processed_window_df
+
+            processed_window_df = net_info_3centrality(window_df[['Date', 'Sender_account', 'Receiver_account', 'Amount']])
+            processed_window_df = processed_window_df.set_index(window_df.index)
+            dataset.update(processed_window_df)
+            del processed_window_df
+        del window_df
+
+    return dataset
+
+
+def net_info_rti(dataset):
+    """
+    tri: recently trans info
+    计算 Sender、Receiver 的交易统计信息，并考虑交叉交易情况。
+    """
+
+    # 计算数据集的总时长（天数）
+    total_days = (dataset["Date"].max() - dataset["Date"].min()).days + 1  # 计算数据集的总天数
+
+    # 统计 Sender 发送交易信息
+    sender_stats = dataset.groupby("Sender_account").agg(
+        Sender_send_amount=("Amount", "sum"),
+        Sender_send_count=("Amount", "count")
+    ).reset_index()
+    sender_stats["Sender_send_frequency"] = sender_stats["Sender_send_count"] / total_days
+
+    # 统计 Receiver 接收交易信息
+    receiver_stats = dataset.groupby("Receiver_account").agg(
+        Receiver_receive_amount=("Amount", "sum"),
+        Receiver_receive_count=("Amount", "count")
+    ).reset_index()
+    receiver_stats["Receiver_receive_frequency"] = receiver_stats["Receiver_receive_count"] / total_days
+
+    # 统计 Sender 作为 Receiver 时的交易信息（Sender_receive_）
+    sender_receive_stats = dataset.groupby("Receiver_account").agg(
+        Sender_receive_amount=("Amount", "sum"),
+        Sender_receive_count=("Amount", "count")
+    ).reset_index()
+    sender_receive_stats.rename(columns={"Receiver_account": "Sender_account"}, inplace=True)
+    sender_receive_stats["Sender_receive_frequency"] = sender_receive_stats["Sender_receive_count"] / total_days
+
+    # 统计 Receiver 作为 Sender 时的交易信息（Receiver_send_）
+    receiver_send_stats = dataset.groupby("Sender_account").agg(
+        Receiver_send_amount=("Amount", "sum"),
+        Receiver_send_count=("Amount", "count")
+    ).reset_index()
+    receiver_send_stats.rename(columns={"Sender_account": "Receiver_account"}, inplace=True)
+    receiver_send_stats["Receiver_send_frequency"] = receiver_send_stats["Receiver_send_count"] / total_days
+
+    # 合并计算结果到原始数据集
+    dataset = dataset.merge(sender_stats, on="Sender_account", how="left")
+    dataset = dataset.merge(receiver_stats, on="Receiver_account", how="left")
+    dataset = dataset.merge(sender_receive_stats, on="Sender_account", how="left")
+    dataset = dataset.merge(receiver_send_stats, on="Receiver_account", how="left")
+
+    return dataset
 
 
 def net_info_tic(dataset):
@@ -35,7 +275,67 @@ def net_info_tic(dataset):
     return dataset
 
 
-def net_info_before_(dataset, window_days):
+def net_info_3centrality(dataset):
+    """
+    Creates directed graph based on sender_account and receiver_account, calculates degree, closeness, and betweenness centralities,
+    and attaches these features to the transaction dataset.
+
+    Args:
+        dataset (pd.DataFrame): The input dataset containing sender_account and receiver_account columns.
+
+    Returns:
+        pd.DataFrame: The dataset with additional columns for sender and receiver centralities:
+                      - sender_account_degree_centrality
+                      - sender_account_closeness_centrality
+                      - sender_account_betweenness_centrality
+                      - receiver_account_degree_centrality
+                      - receiver_account_closeness_centrality
+                      - receiver_account_betweenness_centrality
+    """
+    # Step 1: Create a directed graph
+    # Extract edges from the dataset
+    edges = list(zip(dataset['Sender_account'], dataset['Receiver_account']))
+
+    # Create an igraph directed graph
+    G = ig.Graph.TupleList(edges, directed=True)
+
+    # Step 2: Compute centrality measures
+    # Degree centrality
+    degree_centrality = G.degree(mode="all")  # Includes both in-degree and out-degree
+    # Closeness centrality
+    closeness_centrality = G.closeness(normalized=False)
+    # Betweenness centrality
+    betweenness_centrality = G.betweenness()
+
+    # Step 3: Map centrality measures to dataset rows
+    # Map the centrality values to the corresponding accounts
+    account_list = G.vs["name"]  # Get the list of vertex names (accounts)
+    centrality_df = pd.DataFrame({
+        "account": account_list,
+        "degree_centrality": degree_centrality,
+        "closeness_centrality": closeness_centrality,
+        "betweenness_centrality": betweenness_centrality
+    })
+
+    # Add sender and receiver centralities to the dataset
+    dataset = dataset.merge(centrality_df, left_on="Sender_account", right_on="account", how="left") \
+                     .rename(columns={
+                         "degree_centrality": "sender_account_degree_centrality",
+                         "closeness_centrality": "sender_account_closeness_centrality",
+                         "betweenness_centrality": "sender_account_betweenness_centrality"
+                     }).drop(columns=["account"])
+
+    dataset = dataset.merge(centrality_df, left_on="Receiver_account", right_on="account", how="left") \
+                     .rename(columns={
+                         "degree_centrality": "receiver_account_degree_centrality",
+                         "closeness_centrality": "receiver_account_closeness_centrality",
+                         "betweenness_centrality": "receiver_account_betweenness_centrality"
+                     }).drop(columns=["account"])
+
+    return dataset
+
+
+def strict_before_(dataset, window_days):
     sender_history = defaultdict(lambda: defaultdict(int))
     receiver_history = defaultdict(lambda: defaultdict(int))
 
@@ -107,7 +407,7 @@ def net_info_before_(dataset, window_days):
     return dataset
 
 
-def net_info_before_with_graph_(dataset, window_days):
+def strict_before_graph_(dataset, window_days):
     sender_history = defaultdict(lambda: defaultdict(int))
     receiver_history = defaultdict(lambda: defaultdict(int))
 
@@ -236,281 +536,6 @@ def net_info_before_with_graph_(dataset, window_days):
     return dataset
 
 
-def net_info_before(dataset, window_days):
-    """
-    按时间窗口划分数据，并分别调用 net_info_rti() 进行处理
-    :param dataset: 原始交易数据集
-    :param window_days: 时间窗口天数
-    :return: 处理后的数据集
-    """
-
-    start_date = dataset["Date"].min()
-    end_date = dataset["Date"].max()
-    total_days = (end_date - start_date).days + 1
-
-    processed_dfs = []  # 存储每个时间窗口处理后的数据
-
-    # 逐步处理时间窗口
-    for i in range(0, total_days, window_days):
-        window_start = start_date + pd.Timedelta(days=i)
-        window_end = min(start_date + pd.Timedelta(days=i + window_days - 1), end_date)
-
-        # 过滤出当前时间窗口的数据
-        window_df = dataset[(dataset["Date"] >= window_start) & (dataset["Date"] <= window_end)].copy()
-        print(f"window df length:{len(window_df)}")
-
-        # 仅在窗口数据非空时处理
-        if not window_df.empty:
-            processed_window_df = net_info_rti(window_df)
-            processed_dfs.append(processed_window_df)
-
-    # 合并所有处理后的数据
-    final_dataset = pd.concat(processed_dfs, ignore_index=True)
-    return final_dataset
-
-
-def net_info_before_with_graph(dataset, window_days):
-    start_date = dataset["Date"].min()
-    end_date = dataset["Date"].max()
-    total_days = (end_date - start_date).days + 1
-
-    processed_dfs = []  # 存储每个时间窗口处理后的数据
-
-    # 逐步处理时间窗口
-    for i in range(0, total_days, window_days):
-        window_start = start_date + pd.Timedelta(days=i)
-        window_end = min(start_date + pd.Timedelta(days=i + window_days - 1), end_date)
-
-        # 过滤出当前时间窗口的数据
-        window_df = dataset[(dataset["Date"] >= window_start) & (dataset["Date"] <= window_end)].copy()
-        print(f"window df length:{len(window_df)}")
-
-        # 仅在窗口数据非空时处理
-        if not window_df.empty:
-            processed_window_df = net_info_3centrality(window_df)
-            processed_dfs.append(processed_window_df)
-            del processed_window_df
-
-    # 合并所有处理后的数据
-    final_dataset = pd.concat(processed_dfs, ignore_index=True)
-    del processed_dfs
-    return final_dataset
-
-
-def net_info_slider(dataset, window_days):
-    """
-    滑动窗口计算交易统计信息，并确保后续窗口计算结果正确覆盖已有数据，而不产生新行
-    """
-    dataset[
-        ['Sender_send_amount', 'Sender_send_count', 'Sender_send_frequency', 'Receiver_receive_amount',
-         'Receiver_receive_count', 'Receiver_receive_frequency', 'Sender_receive_amount', 'Sender_receive_count',
-         'Sender_receive_frequency', 'Receiver_send_amount', 'Receiver_send_count', 'Receiver_send_frequency']
-    ] = 0.0
-    start_date = dataset["Date"].min()
-    end_date = dataset["Date"].max()
-    total_days = (end_date - start_date).days + 1
-
-    # 滑动窗口计算
-    for i in range(total_days - window_days + 1):  # 控制窗口滑动范围
-        window_start = start_date + pd.Timedelta(days=i)
-        window_end = window_start + pd.Timedelta(days=window_days - 1)
-
-        window_df = dataset[(dataset["Date"] >= window_start) & (dataset["Date"] <= window_end)].copy()
-        print(f"window df length:{len(window_df)}")
-
-        # 仅在窗口数据非空时处理
-        if not window_df.empty:
-            processed_window_df = net_info_rti(window_df[['Date', 'Sender_account', 'Receiver_account', 'Amount']])
-            processed_window_df = processed_window_df.set_index(window_df.index)
-
-            # print(dataset.shape)
-            # print(processed_window_df.shape)
-            # dataset = dataset.combine_first(processed_window_df)
-            dataset.update(processed_window_df)
-
-            del processed_window_df
-        del window_df
-
-    return dataset
-
-
-def net_info_slider_with_graph(dataset, window_days):
-    dataset[
-        ['sender_account_degree_centrality', 'sender_account_closeness_centrality',
-         'sender_account_betweenness_centrality', 'receiver_account_degree_centrality',
-         'receiver_account_closeness_centrality', 'receiver_account_betweenness_centrality']
-    ] = 0.0
-    start_date = dataset["Date"].min()
-    end_date = dataset["Date"].max()
-    total_days = (end_date - start_date).days + 1
-
-    # 滑动窗口计算
-    for i in range(total_days - window_days + 1):  # 控制窗口滑动范围
-        window_start = start_date + pd.Timedelta(days=i)
-        window_end = window_start + pd.Timedelta(days=window_days - 1)
-
-        window_df = dataset[(dataset["Date"] >= window_start) & (dataset["Date"] <= window_end)].copy()
-        print(f"window df length:{len(window_df)}")
-
-        # 仅在窗口数据非空时处理
-        if not window_df.empty:
-            processed_window_df = net_info_3centrality(window_df[['Date', 'Sender_account', 'Receiver_account', 'Amount']])
-            processed_window_df = processed_window_df.set_index(window_df.index)
-            dataset.update(processed_window_df)
-            del processed_window_df
-        del window_df
-
-    return dataset
-
-
-def net_info_rti(dataset):
-    """
-    tri: recently trans info
-    计算 Sender、Receiver 的交易统计信息，并考虑交叉交易情况。
-    """
-
-    # 计算数据集的总时长（天数）
-    total_days = (dataset["Date"].max() - dataset["Date"].min()).days + 1  # 计算数据集的总天数
-
-    # 统计 Sender 发送交易信息
-    sender_stats = dataset.groupby("Sender_account").agg(
-        Sender_send_amount=("Amount", "sum"),
-        Sender_send_count=("Amount", "count")
-    ).reset_index()
-    sender_stats["Sender_send_frequency"] = sender_stats["Sender_send_count"] / total_days
-
-    # 统计 Receiver 接收交易信息
-    receiver_stats = dataset.groupby("Receiver_account").agg(
-        Receiver_receive_amount=("Amount", "sum"),
-        Receiver_receive_count=("Amount", "count")
-    ).reset_index()
-    receiver_stats["Receiver_receive_frequency"] = receiver_stats["Receiver_receive_count"] / total_days
-
-    # 统计 Sender 作为 Receiver 时的交易信息（Sender_receive_）
-    sender_receive_stats = dataset.groupby("Receiver_account").agg(
-        Sender_receive_amount=("Amount", "sum"),
-        Sender_receive_count=("Amount", "count")
-    ).reset_index()
-    sender_receive_stats.rename(columns={"Receiver_account": "Sender_account"}, inplace=True)
-    sender_receive_stats["Sender_receive_frequency"] = sender_receive_stats["Sender_receive_count"] / total_days
-
-    # 统计 Receiver 作为 Sender 时的交易信息（Receiver_send_）
-    receiver_send_stats = dataset.groupby("Sender_account").agg(
-        Receiver_send_amount=("Amount", "sum"),
-        Receiver_send_count=("Amount", "count")
-    ).reset_index()
-    receiver_send_stats.rename(columns={"Sender_account": "Receiver_account"}, inplace=True)
-    receiver_send_stats["Receiver_send_frequency"] = receiver_send_stats["Receiver_send_count"] / total_days
-
-    # 合并计算结果到原始数据集
-    dataset = dataset.merge(sender_stats, on="Sender_account", how="left")
-    dataset = dataset.merge(receiver_stats, on="Receiver_account", how="left")
-    dataset = dataset.merge(sender_receive_stats, on="Sender_account", how="left")
-    dataset = dataset.merge(receiver_send_stats, on="Receiver_account", how="left")
-
-    return dataset
-
-def net_info_rtw_(dataset):
-    # not useful
-    """
-    rtw: recently trans with
-    Optimized version for filtering transaction data and adding the most recent account information for senders and receivers.
-
-    Args:
-        dataset (pd.DataFrame): The input dataset containing transaction information.
-
-    Returns:
-        pd.DataFrame: The dataset with additional columns:
-                      - 'Sender_recent_with_account': The most recent account the sender has interacted with.
-                      - 'Receiver_recent_with_account': The most recent account the receiver has interacted with.
-    """
-    # Temporary dictionaries to track the most recent accounts
-    sender_last_transaction = {}
-    receiver_last_transaction = {}
-
-    # Initialize lists to store the new columns
-    sender_recent_with_account = []
-    receiver_recent_with_account = []
-
-    # Iterate over the dataset rows to populate recent transaction information (optimized with lists)
-    for sender, receiver in zip(dataset['Sender_account'], dataset['Receiver_account']):
-        # Get the most recent account the sender interacted with
-        sender_recent_with_account.append(sender_last_transaction.get(sender, 0))
-        # Update the sender's last transaction
-        sender_last_transaction[sender] = receiver
-
-        # Get the most recent account the receiver interacted with
-        receiver_recent_with_account.append(receiver_last_transaction.get(receiver, 0))
-        # Update the receiver's last transaction
-        receiver_last_transaction[receiver] = sender
-
-    # Add the new columns to the filtered dataset
-    dataset['Sender_recent_with_account'] = sender_recent_with_account
-    dataset['Receiver_recent_with_account'] = receiver_recent_with_account
-
-    return dataset
-
-
-def net_info_3centrality(dataset):
-    """
-    Creates directed graph based on sender_account and receiver_account, calculates degree, closeness, and betweenness centralities,
-    and attaches these features to the transaction dataset.
-
-    Args:
-        dataset (pd.DataFrame): The input dataset containing sender_account and receiver_account columns.
-
-    Returns:
-        pd.DataFrame: The dataset with additional columns for sender and receiver centralities:
-                      - sender_account_degree_centrality
-                      - sender_account_closeness_centrality
-                      - sender_account_betweenness_centrality
-                      - receiver_account_degree_centrality
-                      - receiver_account_closeness_centrality
-                      - receiver_account_betweenness_centrality
-    """
-    # Step 1: Create a directed graph
-    # Extract edges from the dataset
-    edges = list(zip(dataset['Sender_account'], dataset['Receiver_account']))
-
-    # Create an igraph directed graph
-    G = ig.Graph.TupleList(edges, directed=True)
-
-    # Step 2: Compute centrality measures
-    # Degree centrality
-    degree_centrality = G.degree(mode="all")  # Includes both in-degree and out-degree
-    # Closeness centrality
-    closeness_centrality = G.closeness(normalized=False)
-    # Betweenness centrality
-    betweenness_centrality = G.betweenness()
-
-    # Step 3: Map centrality measures to dataset rows
-    # Map the centrality values to the corresponding accounts
-    account_list = G.vs["name"]  # Get the list of vertex names (accounts)
-    centrality_df = pd.DataFrame({
-        "account": account_list,
-        "degree_centrality": degree_centrality,
-        "closeness_centrality": closeness_centrality,
-        "betweenness_centrality": betweenness_centrality
-    })
-
-    # Add sender and receiver centralities to the dataset
-    dataset = dataset.merge(centrality_df, left_on="Sender_account", right_on="account", how="left") \
-                     .rename(columns={
-                         "degree_centrality": "sender_account_degree_centrality",
-                         "closeness_centrality": "sender_account_closeness_centrality",
-                         "betweenness_centrality": "sender_account_betweenness_centrality"
-                     }).drop(columns=["account"])
-
-    dataset = dataset.merge(centrality_df, left_on="Receiver_account", right_on="account", how="left") \
-                     .rename(columns={
-                         "degree_centrality": "receiver_account_degree_centrality",
-                         "closeness_centrality": "receiver_account_closeness_centrality",
-                         "betweenness_centrality": "receiver_account_betweenness_centrality"
-                     }).drop(columns=["account"])
-
-    return dataset
-
-
 def normalize(lst):
     min_val, max_val = min(lst), max(lst)
     val_gap = max_val - min_val
@@ -575,5 +600,46 @@ def net_info_3centrality_normalized_(dataset):
                          "closeness_centrality": "receiver_account_closeness_centrality",
                          "betweenness_centrality": "receiver_account_betweenness_centrality"
                      }).drop(columns=["account"])
+
+    return dataset
+
+
+def net_info_rtw_(dataset):
+    # not useful
+    """
+    rtw: recently trans with
+    Optimized version for filtering transaction data and adding the most recent account information for senders and receivers.
+
+    Args:
+        dataset (pd.DataFrame): The input dataset containing transaction information.
+
+    Returns:
+        pd.DataFrame: The dataset with additional columns:
+                      - 'Sender_recent_with_account': The most recent account the sender has interacted with.
+                      - 'Receiver_recent_with_account': The most recent account the receiver has interacted with.
+    """
+    # Temporary dictionaries to track the most recent accounts
+    sender_last_transaction = {}
+    receiver_last_transaction = {}
+
+    # Initialize lists to store the new columns
+    sender_recent_with_account = []
+    receiver_recent_with_account = []
+
+    # Iterate over the dataset rows to populate recent transaction information (optimized with lists)
+    for sender, receiver in zip(dataset['Sender_account'], dataset['Receiver_account']):
+        # Get the most recent account the sender interacted with
+        sender_recent_with_account.append(sender_last_transaction.get(sender, 0))
+        # Update the sender's last transaction
+        sender_last_transaction[sender] = receiver
+
+        # Get the most recent account the receiver interacted with
+        receiver_recent_with_account.append(receiver_last_transaction.get(receiver, 0))
+        # Update the receiver's last transaction
+        receiver_last_transaction[receiver] = sender
+
+    # Add the new columns to the filtered dataset
+    dataset['Sender_recent_with_account'] = sender_recent_with_account
+    dataset['Receiver_recent_with_account'] = receiver_recent_with_account
 
     return dataset

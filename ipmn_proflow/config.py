@@ -11,9 +11,16 @@ class Config:
         self.DATAPATH = f'{os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))}\\data\\'
 
         self.ORI_ALL_CSV = 'SAML-D.csv'
-        self.IBM_CSV = 'HI-Small_Trans.csv'
+
+        self.IBM_CSV_H = 'sampled_IBM.csv'
+
+        self.SAVE_TRANS = 'saved_transformer.pkl'
+        self.SAVE_MODEL = 'saved_model.pkl'
+
         # Random seed for reproducibility
         self.RANDOM_SEED = 42
+
+        self.SAVE_TRAIN_TEST = 2
 
         # Standardized input parameters that datasets must follow
         self.STANDARD_INPUT_PARAM = ['Is_laundering',
@@ -33,22 +40,27 @@ class Config:
             'first_2_d73': 'first_2_d73',
             'first_4_d73': 'first_4_d73',
             'IBM_d73': 'IBM_d73',
-            'one_train_one_test': 'one_train_one_test',
-            'months_train_months_test': 'months_train_months_test',
-            'all_train_IBM_test': 'all_train_IBM_test',
             'specific_train_specific_test': 'specific_train_specific_test',
         }
 
+        # Predefined quick test dataset time configuration
+        self.QT_TRAIN_START = '2022/11/01'
+        self.QT_TRAIN_END = '2022/11/30'
+        self.QT_TEST_START = '2023/07/01'
+        self.QT_TEST_END = '2023/07/31'
+
         # Parameter handling modes
         self.PARAMETER_MODES = {
-            'tdd_net_info_0': 'tdd_net_info_0',
-            'tdd_net_info_1': 'tdd_net_info_1',
-            'tdd_net_info_2': 'tdd_net_info_2',
-            'tdd_net_info_3': 'tdd_net_info_3',
-            'tdd_net_info_4': 'tdd_net_info_4',
-            'tdd_net_info_5': 'tdd_net_info_5',
-            'tdd_net_info_6': 'tdd_net_info_6',
-            'tdd_net_info_7': 'tdd_net_info_7',
+            'param_0': 'param_0',
+            'param_1': 'param_1',
+            'param_2': 'param_2',
+            'param_3': 'param_3',
+            'param_4': 'param_4',
+            'param_5': 'param_5',
+            'param_6': 'param_6',
+            'param_7': 'param_7',
+            'param_a': 'param_a',
+            'param_b': 'param_b',
         }
 
         self.WINDOW_SIZE = 7
@@ -62,11 +74,15 @@ class Config:
         # Target true positive rate (TPR) for model evaluation
         self.TPR = 0.95
 
-        # Predefined quick test dataset time configuration
-        self.QT_TRAIN_START = '2022/11/01'
-        self.QT_TRAIN_END = '2022/11/30'
-        self.QT_TEST_START = '2023/07/01'
-        self.QT_TEST_END = '2023/07/31'
+        self.TPR_SET = 0
+
+        # program running modes
+        self.RUN_MODES = {
+            'param_0': 'param_0',
+            'param_1': 'param_1',
+            'param_2': 'param_2',
+            'param_3': 'param_3',
+        }
 
     def parse_arguments(self):
         """
@@ -91,7 +107,7 @@ class Config:
             '--param',
             type=str,
             choices=self.PARAMETER_MODES.values(),
-            default=self.PARAMETER_MODES['tdd_net_info_0'],
+            default=self.PARAMETER_MODES['param_0'],
             help='Specify parameter handling mode.'
         )
 

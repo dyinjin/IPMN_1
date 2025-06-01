@@ -17,6 +17,12 @@ class UnitDataLoader:
             # Read the CSV file into a temporary DataFrame
             csv_data = pd.read_csv(file_path)
 
+            # Convert the 'Date' column to datetime
+            csv_data['Date'] = pd.to_datetime(csv_data['Date'])
+
+            # Sort the data by 'Date' to ensure chronological order
+            csv_data = csv_data.sort_values(by='Date')
+
             # Populate the standardized columns with data from the CSV file
             for column in data_set.columns:
                 if column in csv_data.columns:
@@ -156,5 +162,29 @@ class UnitDataLoader:
 
         data_set['Payment_type'] = csv_data['Payment Format']
 
+        # Convert the 'Date' column to datetime
+        data_set['Date'] = pd.to_datetime(data_set['Date'])
+
+        # Sort the data by 'Date' to ensure chronological order
+        data_set = data_set.sort_values(by='Date')
+
         return data_set
 
+
+    @staticmethod
+    def datauniter_saml(config, csv_data):
+        data_set = pd.DataFrame(data=None, columns=config.STANDARD_INPUT_PARAM)
+
+        # Convert the 'Date' column to datetime
+        data_set['Date'] = pd.to_datetime(data_set['Date'])
+
+        # Sort the data by 'Date' to ensure chronological order
+        data_set = data_set.sort_values(by='Date')
+
+        # Populate the standardized columns with data from the CSV file
+        for column in data_set.columns:
+            if column in csv_data.columns:
+                data_set[column] = csv_data[column]
+
+        # Return the populated standardized dataset
+        return data_set

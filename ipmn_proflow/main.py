@@ -1,10 +1,12 @@
 from imports import *
 
+y_pred = None
 
 def main():
     """
     Main function to execute the program logic.
     """
+    global y_pred
     print("Program Start")
     print("Loading Config")
     config = Config()
@@ -31,11 +33,18 @@ def main():
         split_index = int(len(data_set) * 0.7)
         train_set, test_set = data_set.iloc[:split_index], data_set.iloc[split_index:]
     elif args.dataset == config.DATASET_MODES['IBM_d73']:
-        UnitDataLoader.csvloader_specified()
-    # elif args.dataset == config.DATASET_MODES['one_train_one_test']:
-    # elif args.dataset == config.DATASET_MODES['one_train_one_test']:
-    # elif args.dataset == config.DATASET_MODES['all_train_IBM_test']:
-    # elif args.dataset == config.DATASET_MODES['specific_train_specific_test']:
+        # Thought the time span was too short(1day), NOT SUITABLE as a training set
+        data_set = UnitDataLoader.csvloader_specified(config, config.IBM_CSV_H)
+        data_set = UnitDataLoader.datauniter_ibm(config, data_set)
+        split_index = int(len(data_set) * 0.7)
+        train_set, test_set = data_set.iloc[:split_index], data_set.iloc[split_index:]
+    elif args.dataset == config.DATASET_MODES['specific_train_specific_test']:
+        train_set = UnitDataLoader.csvloader_specified(config, "2022-11.csv")
+        train_set = UnitDataLoader.datauniter_saml(config, train_set)
+        # need different datauniter, the column names of the dataset need be consistent
+        test_set = UnitDataLoader.csvloader_specified(config, "2023-06.csv")
+        test_set = UnitDataLoader.datauniter_saml(config, test_set)
+
     # TODO: Add support for more configuration options
     else:
         # Raise an error if dataset mode is unsupported
@@ -49,45 +58,46 @@ def main():
     Argument --param: Feature Parameter mode
     """
     def parameter_adder(param_arg, dataset):
-        if param_arg == config.PARAMETER_MODES['tdd_net_info_0']:
+        if param_arg == config.PARAMETER_MODES['param_0']:
             # Split dataset by time and date
+            # Default parameter
             dataset = date_apart(dataset)
-            print("PARAMETER ADDED: date/time parameter divide")
-        elif param_arg == config.PARAMETER_MODES['tdd_net_info_1']:
+        elif param_arg == config.PARAMETER_MODES['param_1']:
             dataset = date_apart(dataset)
-            print("PARAMETER ADDED: date/time parameter divide")
             dataset = net_info_tic(dataset)
             print("PARAMETER ADDED: transaction time counter")
-        elif param_arg == config.PARAMETER_MODES['tdd_net_info_2']:
+        elif param_arg == config.PARAMETER_MODES['param_2']:
             dataset = date_apart(dataset)
-            print("PARAMETER ADDED: date/time parameter divide")
             dataset = net_info_rti(dataset)
-            print("PARAMETER ADDED: association transaction info")
-        elif param_arg == config.PARAMETER_MODES['tdd_net_info_3']:
+            print("PARAMETER ADDED: recent association transaction info")
+        elif param_arg == config.PARAMETER_MODES['param_3']:
             dataset = date_apart(dataset)
-            print("PARAMETER ADDED: date/time parameter divide")
             dataset = net_info_3centrality(dataset)
             print("PARAMETER ADDED: three graph features")
-        elif param_arg == config.PARAMETER_MODES['tdd_net_info_4']:
+        elif param_arg == config.PARAMETER_MODES['param_4']:
             dataset = date_apart(dataset)
-            print("PARAMETER ADDED: date/time parameter divide")
-            dataset = net_info_before(dataset, config.WINDOW_SIZE)
-            print("PARAMETER ADDED: before transaction info")
-        elif param_arg == config.PARAMETER_MODES['tdd_net_info_5']:
+            dataset = window_before(dataset, config.WINDOW_SIZE)
+            print("PARAMETER ADDED: window cut association transaction info")
+        elif param_arg == config.PARAMETER_MODES['param_5']:
             dataset = date_apart(dataset)
-            print("PARAMETER ADDED: date/time parameter divide")
-            dataset = net_info_before_with_graph(dataset, config.WINDOW_SIZE)
-            print("PARAMETER ADDED: before transaction info with child graph")
-        elif param_arg == config.PARAMETER_MODES['tdd_net_info_6']:
+            dataset = window_before_graph(dataset, config.WINDOW_SIZE)
+            print("PARAMETER ADDED: window cut graph features")
+        elif param_arg == config.PARAMETER_MODES['param_6']:
             dataset = date_apart(dataset)
-            print("PARAMETER ADDED: date/time parameter divide")
-            dataset = net_info_slider(dataset, config.WINDOW_SIZE)
-            print("PARAMETER ADDED: before transaction info")
-        elif param_arg == config.PARAMETER_MODES['tdd_net_info_7']:
+            dataset = window_slider(dataset, config.WINDOW_SIZE)
+            print("PARAMETER ADDED: window slide association transaction info")
+        elif param_arg == config.PARAMETER_MODES['param_7']:
             dataset = date_apart(dataset)
-            print("PARAMETER ADDED: date/time parameter divide")
-            dataset = net_info_slider_with_graph(dataset, config.WINDOW_SIZE)
-            print("PARAMETER ADDED: before transaction info with child graph")
+            dataset = window_slider_graph(dataset, config.WINDOW_SIZE)
+            print("PARAMETER ADDED: window slide graph features")
+        elif param_arg == config.PARAMETER_MODES['param_a']:
+            dataset = date_apart(dataset)
+            dataset = window_before_inte(dataset, config.WINDOW_SIZE)
+            print("PARAMETER ADDED: window cut features")
+        elif param_arg == config.PARAMETER_MODES['param_b']:
+            dataset = date_apart(dataset)
+            dataset = window_slider_inte(dataset, config.WINDOW_SIZE)
+            print("PARAMETER ADDED: window slide features")
         # TODO: Add support for more configuration options
         else:
             # Raise an error if parameter handle mode is unsupported
@@ -112,17 +122,20 @@ def main():
     # print(X_train.columns)
     # print(X_test.columns)
 
-    # TODO config save or not by args
-    # save train/test X/y to csv
-    X_train.to_csv(f"{config.DATAPATH}{args.dataset}-{args.param}-X_train.csv", index=False)
-    X_test.to_csv(f"{config.DATAPATH}{args.dataset}-{args.param}-X_test.csv", index=False)
-    y_train.to_csv(f"{config.DATAPATH}{args.dataset}-{args.param}-y_train.csv", index=False)
-    y_test.to_csv(f"{config.DATAPATH}{args.dataset}-{args.param}-y_test.csv", index=False)
+    if config.SAVE_TRAIN_TEST == 0:
+        pass
+    elif config.SAVE_TRAIN_TEST == 1:
+        # save train/test X/y to csv
+        X_train.to_csv(f"{config.DATAPATH}{args.dataset}-{args.param}-X_train.csv", index=False)
+        X_test.to_csv(f"{config.DATAPATH}{args.dataset}-{args.param}-X_test.csv", index=False)
+        y_train.to_csv(f"{config.DATAPATH}{args.dataset}-{args.param}-y_train.csv", index=False)
+        y_test.to_csv(f"{config.DATAPATH}{args.dataset}-{args.param}-y_test.csv", index=False)
+    elif config.SAVE_TRAIN_TEST == 2:
+        # save train/test set to csv
+        pd.concat([X_train, y_train], axis=1).to_csv(f"{config.DATAPATH}{args.dataset}-{args.param}-X_train_with_y.csv", index=False)
+        pd.concat([X_test, y_test], axis=1).to_csv(f"{config.DATAPATH}{args.dataset}-{args.param}-X_test_with_y.csv", index=False)
 
-    # # save train/test set to csv
-    # pd.concat([X_train, y_train], axis=1).to_csv(f"{config.DATAPATH}{args.dataset}-{args.param}-X_train_with_y.csv", index=False)
-    # pd.concat([X_test, y_test], axis=1).to_csv(f"{config.DATAPATH}{args.dataset}-{args.param}-X_test_with_y.csv", index=False)
-
+    # TODO: Implement model choice functionality
     # Process numerical and categorical features for classification models
     numerical_features = X_train.select_dtypes(exclude="object").columns
     categorical_features = X_train.select_dtypes(include="object").columns
@@ -132,7 +145,6 @@ def main():
     numerical_features = numerical_features.difference(account_columns)
     categorical_features = categorical_features.union(account_columns)
 
-    # TODO: Implement model choice functionality
     transformer = ColumnTransformer(transformers=[
         # Encode categorical features using OrdinalEncoder
         ("OrdinalEncoder", OrdinalEncoder(handle_unknown='use_encoded_value', unknown_value=-1), categorical_features),
@@ -143,6 +155,13 @@ def main():
     # Apply transformations to training and testing datasets
     X_train = transformer.fit_transform(X_train)
     X_test = transformer.transform(X_test)
+
+    # 保存 transformer
+    current_time = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    transformer_path = f"{config.DATAPATH}{current_time}_{config.SAVE_TRANS}"
+    joblib.dump(transformer, transformer_path)
+    print(f"Transformer saved to {transformer_path}")
 
     print("train set laundering count:")
     print(y_train.value_counts())
@@ -167,15 +186,13 @@ def main():
 
     # nn = MLPClassifier(max_iter=500, random_state=42)
     #
-    # # 定义超参数搜索空间
     # param_grid = {
-    #     "hidden_layer_sizes": [(64, 32)],  # 隐藏层结构
-    #     "activation": ["relu", "tanh"],  # 激活函数
-    #     "solver": ["adam"],  # 优化器
-    #     "alpha": [0.01]  # L2 正则化强度
+    #     "hidden_layer_sizes": [(64, 32)],
+    #     "activation": ["relu", "tanh"],
+    #     "solver": ["adam"],
+    #     "alpha": [0.01]
     # }
     #
-    # # 进行超参数搜索
     # grid_search = GridSearchCV(estimator=nn, param_grid=param_grid, scoring="roc_auc", cv=2, verbose=2)
 
     # lr = LogisticRegression()
@@ -206,31 +223,62 @@ def main():
     print("Best Parameters: ", grid_search.best_params_)
     best_model = grid_search.best_estimator_
 
+    # 存储模型
+    model_path = f"{config.DATAPATH}{current_time}_{config.SAVE_MODEL}"
+    joblib.dump(best_model, model_path)
+    print(f"Model saved to {model_path}")
+
     # Evaluate the model using ROC-AUC score
     test_probabilities = best_model.predict_proba(X_test)[:, 1]
     test_auc = roc_auc_score(y_test, test_probabilities)
     print("Test AUC: ", test_auc)
 
-    # Plot ROC curve
+    if config.SAVE_TRAIN_TEST == 0:
+        pass
+    elif config.SAVE_TRAIN_TEST == 1:
+        pd.DataFrame(test_probabilities).to_csv(f"{config.DATAPATH}{args.dataset}-{args.param}-y_prob.csv", index=False)
+    elif config.SAVE_TRAIN_TEST == 2:
+        test_probabilities = pd.Series(test_probabilities, name="predict_fraud_probability")
+        pd.concat([pd.DataFrame(X_test), y_test, test_probabilities], axis=1).to_csv(f"{config.DATAPATH}{args.dataset}-{args.param}-X_test_with_prob.csv", index=False)
+
+    # 计算 ROC 曲线
     fpr, tpr, thresholds = roc_curve(y_test, test_probabilities)
 
-    plt.figure()
-    plt.plot(fpr, tpr, color='darkorange', lw=2, label='ROC curve (area = %0.2f)' % test_auc)
-    plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
-    plt.xlim([0.0, 1.0])
-    plt.ylim([0.0, 1.05])
-    plt.xlabel('False Positive Rate')
-    plt.ylabel('True Positive Rate')
-    plt.title('Receiver Operating Characteristic')
-    plt.legend(loc="lower right")
+    # 绘制 ROC 曲线
+    fig, ax = plt.subplots()
+    ax.plot(fpr, tpr, color='darkorange', lw=2, label='ROC curve')
+    ax.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
+    ax.set_xlim([0.0, 1.0])
+    ax.set_ylim([0.0, 1.05])
+    ax.set_xlabel('False Positive Rate')
+    ax.set_ylabel('True Positive Rate')
+    ax.set_title('Receiver Operating Characteristic')
+    ax.legend(loc="lower right")
+
+    # 判断是否使用预设 TPR、鼠标点击值或保留概率数值
+    if config.TPR_SET == 0:
+        # 使用预设 TPR
+        desired_tpr = config.TPR
+        closest_threshold = thresholds[np.argmin(np.abs(tpr - desired_tpr))]
+        y_pred = (test_probabilities >= closest_threshold).astype(int)
+        print(f"Using preset TPR: {desired_tpr}, Closest Threshold: {closest_threshold}")
+
+    elif config.TPR_SET == 1:
+        def onclick(event):
+            global y_pred
+            if event.xdata is not None and event.ydata is not None:
+                desired_tpr = event.ydata  # 用户选择的 TPR 值
+                closest_threshold = thresholds[np.argmin(np.abs(tpr - desired_tpr))]
+
+                # 根据阈值计算预测标签
+                y_pred = (test_probabilities >= closest_threshold).astype(int)
+                print(f"Selected TPR: {desired_tpr}, Closest Threshold: {closest_threshold}")
+
+        # 绑定鼠标点击事件
+        fig.canvas.mpl_connect('button_press_event', onclick)
+
     plt.show()
 
-    # Generate confusion matrix heatmap at the desired TPR threshold
-    desired_tpr = config.TPR
-    closest_threshold = thresholds[np.argmin(np.abs(tpr - desired_tpr))]
-
-    # Predict labels based on threshold
-    y_pred = (test_probabilities >= closest_threshold).astype(int)
     cm = confusion_matrix(y_test, y_pred)
 
     # Plot confusion matrix heatmap
@@ -238,7 +286,7 @@ def main():
     sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
     plt.xlabel('Predicted labels')
     plt.ylabel('True labels')
-    plt.title(f'Confusion Matrix at {desired_tpr * 100}% TPR')
+    plt.title(f'Confusion Matrix')
     plt.show()
 
     # Extract confusion matrix metrics
@@ -253,9 +301,13 @@ def main():
     # Print classification report for detailed model evaluation
     print(classification_report(y_test, y_pred))
 
-    # TODO config save or not by args
-    # save train test set to csv
-    # pd.DataFrame(y_pred).to_csv(f"{config.DATAPATH}{args.dataset}-{args.param}-{args.division}-y_pred.csv", index=False)
+    if config.SAVE_TRAIN_TEST == 0:
+        pass
+    elif config.SAVE_TRAIN_TEST == 1:
+        pd.DataFrame(y_pred).to_csv(f"{config.DATAPATH}{args.dataset}-{args.param}-y_pred.csv", index=False)
+    elif config.SAVE_TRAIN_TEST == 2:
+        y_pred = pd.Series(y_pred, name="predict_fraud")
+        pd.concat([pd.DataFrame(X_test), y_test, y_pred], axis=1).to_csv(f"{config.DATAPATH}{args.dataset}-{args.param}-X_test_with_pred.csv", index=False)
 
     # # 用于RF的参数重要性分析
     # rf = RandomForestClassifier(n_estimators=50, max_depth=10)
@@ -278,6 +330,8 @@ def main():
     # plt.show()
 
     # TODO: work mode data input to model and predict
+
+    # TODO: show tree, importance, graph
 
 
 if __name__ == '__main__':
