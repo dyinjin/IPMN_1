@@ -94,7 +94,7 @@ def window_before_inte(dataset, window_days):
     return final_dataset
 
 
-def window_slider(dataset, window_days):
+def window_slider(dataset, window_days, step):
     """
     滑动窗口计算交易统计信息，并确保后续窗口计算结果正确覆盖已有数据，而不产生新行
     """
@@ -108,7 +108,7 @@ def window_slider(dataset, window_days):
     total_days = (end_date - start_date).days + 1
 
     # 滑动窗口计算
-    for i in range(total_days - window_days + 1):  # 控制窗口滑动范围
+    for i in range(total_days - window_days, -1, -step):  # 控制窗口滑动范围
         window_start = start_date + pd.Timedelta(days=i)
         window_end = window_start + pd.Timedelta(days=window_days - 1)
 
@@ -131,7 +131,7 @@ def window_slider(dataset, window_days):
     return dataset
 
 
-def window_slider_graph(dataset, window_days):
+def window_slider_graph(dataset, window_days, step):
     dataset[
         ['sender_account_degree_centrality', 'sender_account_closeness_centrality',
          'sender_account_betweenness_centrality', 'receiver_account_degree_centrality',
@@ -142,7 +142,7 @@ def window_slider_graph(dataset, window_days):
     total_days = (end_date - start_date).days + 1
 
     # 滑动窗口计算
-    for i in range(total_days - window_days + 1):  # 控制窗口滑动范围
+    for i in range(total_days - window_days, -1, -step):  # 控制窗口滑动范围
         window_start = start_date + pd.Timedelta(days=i)
         window_end = window_start + pd.Timedelta(days=window_days - 1)
 
@@ -160,7 +160,7 @@ def window_slider_graph(dataset, window_days):
     return dataset
 
 
-def window_slider_inte(dataset, window_days):
+def window_slider_inte(dataset, window_days, step):
     dataset[
         ['Sender_send_amount', 'Sender_send_count', 'Sender_send_frequency', 'Receiver_receive_amount',
          'Receiver_receive_count', 'Receiver_receive_frequency', 'Sender_receive_amount', 'Sender_receive_count',
@@ -174,7 +174,7 @@ def window_slider_inte(dataset, window_days):
     total_days = (end_date - start_date).days + 1
 
     # 滑动窗口计算
-    for i in range(total_days - window_days + 1):  # 控制窗口滑动范围
+    for i in range(total_days - window_days, -1, -step):  # 控制窗口滑动范围
         window_start = start_date + pd.Timedelta(days=i)
         window_end = window_start + pd.Timedelta(days=window_days - 1)
 
@@ -255,8 +255,8 @@ def net_info_tic(dataset):
 
     Returns:
         pd.DataFrame: The dataset with additional columns for transaction counts:
-                      - 'out_same_count': Total transactions (in and out) for the sender account.
-                      - 'in_same_count': Total transactions (in and out) for the receiver account.
+                      - 'Sender_count': Total transactions (in and out) for the sender account.
+                      - 'Receiver_count': Total transactions (in and out) for the receiver account.
     """
     # Count the number of outgoing and incoming transactions for all accounts
     outgoing_count = dataset['Sender_account'].value_counts()

@@ -12,7 +12,7 @@ class Config:
 
         self.ORI_ALL_CSV = 'SAML-D.csv'
 
-        self.IBM_CSV_H = 'sampled_IBM.csv'
+        self.IBM_CSV = 'sampled_IBM.csv'
 
         self.SAVE_TRANS = 'saved_transformer.pkl'
         self.SAVE_MODEL = 'saved_model.pkl'
@@ -46,8 +46,8 @@ class Config:
         # Predefined quick test dataset time configuration
         self.QT_TRAIN_START = '2022/11/01'
         self.QT_TRAIN_END = '2022/11/30'
-        self.QT_TEST_START = '2023/07/01'
-        self.QT_TEST_END = '2023/07/31'
+        self.QT_TEST_START = '2023/04/01'
+        self.QT_TEST_END = '2023/04/30'
 
         # Parameter handling modes
         self.PARAMETER_MODES = {
@@ -59,16 +59,19 @@ class Config:
             'param_5': 'param_5',
             'param_6': 'param_6',
             'param_7': 'param_7',
+            'param_8': 'param_8',
+            'param_9': 'param_9',
             'param_a': 'param_a',
             'param_b': 'param_b',
         }
 
         self.WINDOW_SIZE = 7
+        self.SLIDER_STEP = 1
 
         # Hyperparameter grid for XGBoost model tuning
         self.PARAM_GRID = {
-            'max_depth': [16, 18],
-            'eta': [0.1],
+            'max_depth': [14, 16],
+            'eta': [0.1, 0.12],
         }
 
         # Target true positive rate (TPR) for model evaluation

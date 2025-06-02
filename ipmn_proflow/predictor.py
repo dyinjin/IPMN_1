@@ -1,14 +1,17 @@
 from imports import *
 
 config = Config()
-param = 'param_a'
-dataset = '2023-08.csv'
-model_path = f"{config.DATAPATH}20250602_053833_saved_model.pkl"
-transformer_path = f"{config.DATAPATH}20250602_053833_saved_transformer.pkl"
+param = 'param_b'
+dataset = '2023-06.csv'
+# dataset = 'sampled_IBM.csv'
+model_path = f"{config.DATAPATH}20250602_102921_saved_model.pkl"
+transformer_path = f"{config.DATAPATH}20250602_102921_saved_transformer.pkl"
 config.SAVE_TRAIN_TEST = 0
 
 data_set = UnitDataLoader.csvloader_specified(config, dataset)
 data_set = UnitDataLoader.datauniter_saml(config, data_set)
+# data_set = UnitDataLoader.csvloader_specified(config, config.IBM_CSV)
+# data_set = UnitDataLoader.datauniter_ibm(config, data_set)
 
 data_set = data_set.reset_index(drop=True)
 
@@ -40,19 +43,28 @@ def parameter_adder(param_arg, dataset):
         print("PARAMETER ADDED: window cut graph features")
     elif param_arg == config.PARAMETER_MODES['param_6']:
         dataset = date_apart(dataset)
-        dataset = window_slider(dataset, config.WINDOW_SIZE)
+        dataset = window_slider(dataset, config.WINDOW_SIZE, config.SLIDER_STEP)
         print("PARAMETER ADDED: window slide association transaction info")
     elif param_arg == config.PARAMETER_MODES['param_7']:
         dataset = date_apart(dataset)
-        dataset = window_slider_graph(dataset, config.WINDOW_SIZE)
+        dataset = window_slider_graph(dataset, config.WINDOW_SIZE, config.SLIDER_STEP)
         print("PARAMETER ADDED: window slide graph features")
+    elif param_arg == config.PARAMETER_MODES['param_8']:
+        dataset = date_apart(dataset)
+        dataset = strict_before_(dataset, config.WINDOW_SIZE)
+        print("PARAMETER ADDED: strict before association transaction info")
+    elif param_arg == config.PARAMETER_MODES['param_9']:
+        # not recommend
+        dataset = date_apart(dataset)
+        dataset = strict_before_graph_(dataset, config.WINDOW_SIZE)
+        print("PARAMETER ADDED: strict before graph features")
     elif param_arg == config.PARAMETER_MODES['param_a']:
         dataset = date_apart(dataset)
         dataset = window_before_inte(dataset, config.WINDOW_SIZE)
         print("PARAMETER ADDED: window cut features")
     elif param_arg == config.PARAMETER_MODES['param_b']:
         dataset = date_apart(dataset)
-        dataset = window_slider_inte(dataset, config.WINDOW_SIZE)
+        dataset = window_slider_inte(dataset, config.WINDOW_SIZE, config.SLIDER_STEP)
         print("PARAMETER ADDED: window slide features")
     # TODO: Add support for more configuration options
     else:
@@ -68,6 +80,7 @@ X_pred = data_set.drop(columns=config.STANDARD_INPUT_LABEL)
 print(f"Parameter handle by mode: {param}")
 X_pred = parameter_adder(param, X_pred)
 
+columns_name = X_pred.columns
 # already divide in week day hour etc.
 X_pred = X_pred.drop(columns=config.STANDARD_TIME_PARAM)
 
@@ -90,7 +103,7 @@ elif config.SAVE_TRAIN_TEST == 1:
     pd.DataFrame(pred_probabilities).to_csv(f"{config.DATAPATH}{dataset}-{param}-y_prob.csv", index=False)
 elif config.SAVE_TRAIN_TEST == 2:
     pred_probabilities = pd.Series(pred_probabilities, name="predict_fraud_probability")
-    pd.concat([pd.DataFrame(X_pred), y_pred_ori, pred_probabilities], axis=1).to_csv(
+    pd.concat([pd.DataFrame(X_pred, columns=columns_name), y_pred_ori, pred_probabilities], axis=1).to_csv(
         f"{config.DATAPATH}{dataset}-{param}-X_test_with_prob.csv", index=False)
 
 # 计算 ROC 曲线
@@ -160,5 +173,5 @@ elif config.SAVE_TRAIN_TEST == 1:
     pd.DataFrame(y_pred).to_csv(f"{config.DATAPATH}{dataset}-{param}-y_pred.csv", index=False)
 elif config.SAVE_TRAIN_TEST == 2:
     y_pred = pd.Series(y_pred, name="predict_fraud")
-    pd.concat([pd.DataFrame(X_pred), y_pred_ori, y_pred], axis=1).to_csv(
+    pd.concat([pd.DataFrame(X_pred, columns=columns_name), y_pred_ori, y_pred], axis=1).to_csv(
         f"{config.DATAPATH}{dataset}-{param}-X_test_with_pred.csv", index=False)

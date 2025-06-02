@@ -34,10 +34,13 @@ def main():
         train_set, test_set = data_set.iloc[:split_index], data_set.iloc[split_index:]
     elif args.dataset == config.DATASET_MODES['IBM_d73']:
         # Thought the time span was too short(1day), NOT SUITABLE as a training set
-        data_set = UnitDataLoader.csvloader_specified(config, config.IBM_CSV_H)
+        data_set = UnitDataLoader.csvloader_specified(config, config.IBM_CSV)
         data_set = UnitDataLoader.datauniter_ibm(config, data_set)
-        split_index = int(len(data_set) * 0.7)
-        train_set, test_set = data_set.iloc[:split_index], data_set.iloc[split_index:]
+        train_set, test_set = train_test_split(data_set, test_size=0.3, random_state=config.RANDOM_SEED)
+        train_set = train_set.sort_values(by='Date')
+        test_set = test_set.sort_values(by='Date')
+        # split_index = int(len(data_set) * 0.7)
+        # train_set, test_set = data_set.iloc[:split_index], data_set.iloc[split_index:]
     elif args.dataset == config.DATASET_MODES['specific_train_specific_test']:
         train_set = UnitDataLoader.csvloader_specified(config, "2022-11.csv")
         train_set = UnitDataLoader.datauniter_saml(config, train_set)
@@ -84,19 +87,28 @@ def main():
             print("PARAMETER ADDED: window cut graph features")
         elif param_arg == config.PARAMETER_MODES['param_6']:
             dataset = date_apart(dataset)
-            dataset = window_slider(dataset, config.WINDOW_SIZE)
+            dataset = window_slider(dataset, config.WINDOW_SIZE, config.SLIDER_STEP)
             print("PARAMETER ADDED: window slide association transaction info")
         elif param_arg == config.PARAMETER_MODES['param_7']:
             dataset = date_apart(dataset)
-            dataset = window_slider_graph(dataset, config.WINDOW_SIZE)
+            dataset = window_slider_graph(dataset, config.WINDOW_SIZE, config.SLIDER_STEP)
             print("PARAMETER ADDED: window slide graph features")
+        elif param_arg == config.PARAMETER_MODES['param_8']:
+            dataset = date_apart(dataset)
+            dataset = strict_before_(dataset, config.WINDOW_SIZE)
+            print("PARAMETER ADDED: strict before association transaction info")
+        elif param_arg == config.PARAMETER_MODES['param_9']:
+            # not recommend
+            dataset = date_apart(dataset)
+            dataset = strict_before_graph_(dataset, config.WINDOW_SIZE)
+            print("PARAMETER ADDED: strict before graph features")
         elif param_arg == config.PARAMETER_MODES['param_a']:
             dataset = date_apart(dataset)
             dataset = window_before_inte(dataset, config.WINDOW_SIZE)
             print("PARAMETER ADDED: window cut features")
         elif param_arg == config.PARAMETER_MODES['param_b']:
             dataset = date_apart(dataset)
-            dataset = window_slider_inte(dataset, config.WINDOW_SIZE)
+            dataset = window_slider_inte(dataset, config.WINDOW_SIZE, config.SLIDER_STEP)
             print("PARAMETER ADDED: window slide features")
         # TODO: Add support for more configuration options
         else:
@@ -145,6 +157,9 @@ def main():
     numerical_features = numerical_features.difference(account_columns)
     categorical_features = categorical_features.union(account_columns)
 
+    print("Numerical Features:", numerical_features)
+    print("Categorical Features:", categorical_features)
+
     transformer = ColumnTransformer(transformers=[
         # Encode categorical features using OrdinalEncoder
         ("OrdinalEncoder", OrdinalEncoder(handle_unknown='use_encoded_value', unknown_value=-1), categorical_features),
@@ -152,16 +167,20 @@ def main():
         ("RobustScaler", RobustScaler(), numerical_features)
     ], remainder="passthrough")
 
+    # TODO: ColumnTransformer前后合理性
+
     # Apply transformations to training and testing datasets
+    columns_name = X_train.columns
     X_train = transformer.fit_transform(X_train)
     X_test = transformer.transform(X_test)
 
     # 保存 transformer
     current_time = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
-    transformer_path = f"{config.DATAPATH}{current_time}_{config.SAVE_TRANS}"
-    joblib.dump(transformer, transformer_path)
-    print(f"Transformer saved to {transformer_path}")
+    if config.SAVE_TRAIN_TEST != 0:
+        transformer_path = f"{config.DATAPATH}{current_time}_{config.SAVE_TRANS}"
+        joblib.dump(transformer, transformer_path)
+        print(f"Transformer saved to {transformer_path}")
 
     print("train set laundering count:")
     print(y_train.value_counts())
@@ -224,9 +243,10 @@ def main():
     best_model = grid_search.best_estimator_
 
     # 存储模型
-    model_path = f"{config.DATAPATH}{current_time}_{config.SAVE_MODEL}"
-    joblib.dump(best_model, model_path)
-    print(f"Model saved to {model_path}")
+    if config.SAVE_TRAIN_TEST != 0:
+        model_path = f"{config.DATAPATH}{current_time}_{config.SAVE_MODEL}"
+        joblib.dump(best_model, model_path)
+        print(f"Model saved to {model_path}")
 
     # Evaluate the model using ROC-AUC score
     test_probabilities = best_model.predict_proba(X_test)[:, 1]
@@ -239,7 +259,7 @@ def main():
         pd.DataFrame(test_probabilities).to_csv(f"{config.DATAPATH}{args.dataset}-{args.param}-y_prob.csv", index=False)
     elif config.SAVE_TRAIN_TEST == 2:
         test_probabilities = pd.Series(test_probabilities, name="predict_fraud_probability")
-        pd.concat([pd.DataFrame(X_test), y_test, test_probabilities], axis=1).to_csv(f"{config.DATAPATH}{args.dataset}-{args.param}-X_test_with_prob.csv", index=False)
+        pd.concat([pd.DataFrame(X_test, columns=columns_name), y_test, test_probabilities], axis=1).to_csv(f"{config.DATAPATH}{args.dataset}-{args.param}-X_test_with_prob.csv", index=False)
 
     # 计算 ROC 曲线
     fpr, tpr, thresholds = roc_curve(y_test, test_probabilities)
@@ -307,7 +327,7 @@ def main():
         pd.DataFrame(y_pred).to_csv(f"{config.DATAPATH}{args.dataset}-{args.param}-y_pred.csv", index=False)
     elif config.SAVE_TRAIN_TEST == 2:
         y_pred = pd.Series(y_pred, name="predict_fraud")
-        pd.concat([pd.DataFrame(X_test), y_test, y_pred], axis=1).to_csv(f"{config.DATAPATH}{args.dataset}-{args.param}-X_test_with_pred.csv", index=False)
+        pd.concat([pd.DataFrame(X_test, columns=columns_name), y_test, y_pred], axis=1).to_csv(f"{config.DATAPATH}{args.dataset}-{args.param}-X_test_with_pred.csv", index=False)
 
     # # 用于RF的参数重要性分析
     # rf = RandomForestClassifier(n_estimators=50, max_depth=10)
