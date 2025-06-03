@@ -6,7 +6,7 @@ dataset = '2023-06.csv'
 # dataset = 'sampled_IBM.csv'
 model_path = f"{config.DATAPATH}20250602_102921_saved_model.pkl"
 transformer_path = f"{config.DATAPATH}20250602_102921_saved_transformer.pkl"
-config.SAVE_TRAIN_TEST = 0
+config.SAVE_LEVEL = 0
 
 data_set = UnitDataLoader.csvloader_specified(config, dataset)
 data_set = UnitDataLoader.datauniter_saml(config, data_set)
@@ -97,11 +97,11 @@ pred_probabilities = loaded_model.predict_proba(X_pred)[:, 1]
 pred_auc = roc_auc_score(y_pred_ori, pred_probabilities)
 print("Predict AUC: ", pred_auc)
 
-if config.SAVE_TRAIN_TEST == 0:
+if config.SAVE_LEVEL == 0:
     pass
-elif config.SAVE_TRAIN_TEST == 1:
+elif config.SAVE_LEVEL == 1:
     pd.DataFrame(pred_probabilities).to_csv(f"{config.DATAPATH}{dataset}-{param}-y_prob.csv", index=False)
-elif config.SAVE_TRAIN_TEST == 2:
+elif config.SAVE_LEVEL == 2:
     pred_probabilities = pd.Series(pred_probabilities, name="predict_fraud_probability")
     pd.concat([pd.DataFrame(X_pred, columns=columns_name), y_pred_ori, pred_probabilities], axis=1).to_csv(
         f"{config.DATAPATH}{dataset}-{param}-X_test_with_prob.csv", index=False)
@@ -167,11 +167,11 @@ print(f"True Positive Rate (TPR): {tpr_cm:.3f}")
 # Print classification report for detailed model evaluation
 print(classification_report(y_pred_ori, y_pred))
 
-if config.SAVE_TRAIN_TEST == 0:
+if config.SAVE_LEVEL == 0:
     pass
-elif config.SAVE_TRAIN_TEST == 1:
+elif config.SAVE_LEVEL == 1:
     pd.DataFrame(y_pred).to_csv(f"{config.DATAPATH}{dataset}-{param}-y_pred.csv", index=False)
-elif config.SAVE_TRAIN_TEST == 2:
+elif config.SAVE_LEVEL == 2:
     y_pred = pd.Series(y_pred, name="predict_fraud")
     pd.concat([pd.DataFrame(X_pred, columns=columns_name), y_pred_ori, y_pred], axis=1).to_csv(
         f"{config.DATAPATH}{dataset}-{param}-X_test_with_pred.csv", index=False)

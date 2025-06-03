@@ -134,15 +134,15 @@ def main():
     # print(X_train.columns)
     # print(X_test.columns)
 
-    if config.SAVE_TRAIN_TEST == 0:
+    if config.SAVE_LEVEL == 0:
         pass
-    elif config.SAVE_TRAIN_TEST == 1:
+    elif config.SAVE_LEVEL == 1:
         # save train/test X/y to csv
         X_train.to_csv(f"{config.DATAPATH}{args.dataset}-{args.param}-X_train.csv", index=False)
         X_test.to_csv(f"{config.DATAPATH}{args.dataset}-{args.param}-X_test.csv", index=False)
         y_train.to_csv(f"{config.DATAPATH}{args.dataset}-{args.param}-y_train.csv", index=False)
         y_test.to_csv(f"{config.DATAPATH}{args.dataset}-{args.param}-y_test.csv", index=False)
-    elif config.SAVE_TRAIN_TEST == 2:
+    elif config.SAVE_LEVEL == 2:
         # save train/test set to csv
         pd.concat([X_train, y_train], axis=1).to_csv(f"{config.DATAPATH}{args.dataset}-{args.param}-X_train_with_y.csv", index=False)
         pd.concat([X_test, y_test], axis=1).to_csv(f"{config.DATAPATH}{args.dataset}-{args.param}-X_test_with_y.csv", index=False)
@@ -152,10 +152,10 @@ def main():
     numerical_features = X_train.select_dtypes(exclude="object").columns
     categorical_features = X_train.select_dtypes(include="object").columns
 
-    # "account" always categorical
-    account_columns = [col for col in numerical_features if "account" in col]
-    numerical_features = numerical_features.difference(account_columns)
-    categorical_features = categorical_features.union(account_columns)
+    # "account" always categorical NOT USE
+    # account_columns = [col for col in numerical_features if "account" in col]
+    # numerical_features = numerical_features.difference(account_columns)
+    # categorical_features = categorical_features.union(account_columns)
 
     print("Numerical Features:", numerical_features)
     print("Categorical Features:", categorical_features)
@@ -177,7 +177,7 @@ def main():
     # 保存 transformer
     current_time = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
-    if config.SAVE_TRAIN_TEST != 0:
+    if config.SAVE_LEVEL != 0:
         transformer_path = f"{config.DATAPATH}{current_time}_{config.SAVE_TRANS}"
         joblib.dump(transformer, transformer_path)
         print(f"Transformer saved to {transformer_path}")
@@ -198,52 +198,37 @@ def main():
     param_grid = config.PARAM_GRID
     grid_search = GridSearchCV(estimator=xgb, param_grid=param_grid, scoring='roc_auc', cv=2, verbose=2)
 
-    # rf = RandomForestClassifier()
-    # param_grid = {"n_estimators": [50], "max_depth": [10]}
-    #
-    # grid_search = GridSearchCV(estimator=rf, param_grid=param_grid, scoring="roc_auc", cv=2, verbose=2)
-
-    # nn = MLPClassifier(max_iter=500, random_state=42)
-    #
-    # param_grid = {
-    #     "hidden_layer_sizes": [(64, 32)],
-    #     "activation": ["relu", "tanh"],
-    #     "solver": ["adam"],
-    #     "alpha": [0.01]
-    # }
-    #
-    # grid_search = GridSearchCV(estimator=nn, param_grid=param_grid, scoring="roc_auc", cv=2, verbose=2)
-
-    # lr = LogisticRegression()
-    # param_grid = {"C": [0.1, 1, 10]}
-    #
-    # grid_search = GridSearchCV(estimator=lr, param_grid=param_grid, scoring="roc_auc", cv=2, verbose=2)
-
-
-    # svc = SVC(probability=True)
-    # param_grid = {"C": [0.1, 1, 10], "kernel": ["linear", "rbf"]}
-    #
-    # grid_search = GridSearchCV(estimator=svc, param_grid=param_grid, scoring="roc_auc", cv=2, verbose=2)
-
-
-    # mlp = MLPClassifier()
-    # param_grid = {"hidden_layer_sizes": [(20,)], "alpha": [0.001]}
-    #
-    # grid_search = GridSearchCV(estimator=mlp, param_grid=param_grid, scoring="roc_auc", cv=2, verbose=2)
-
-
-    # knn = KNeighborsClassifier()
-    # param_grid = {"n_neighbors": [3, 5, 10], "weights": ["uniform", "distance"]}
-    #
-    # grid_search = GridSearchCV(estimator=knn, param_grid=param_grid, scoring="roc_auc", cv=2, verbose=2)
-
     # Train the model with grid search
     grid_search.fit(X_train, y_train.values.ravel())
     print("Best Parameters: ", grid_search.best_params_)
     best_model = grid_search.best_estimator_
 
+    # 获取特征重要性
+    feature_importances = best_model.feature_importances_
+
+    # 创建 DataFrame，使特征名称与重要性对应
+    importance_df = pd.DataFrame({
+        'Feature': columns_name,  # 使用预存的列名
+        'Importance': feature_importances
+    })
+
+    # 按重要性排序
+    importance_df = importance_df.sort_values(by="Importance", ascending=False)
+
+    # 可视化特征重要性
+    plt.figure(figsize=(12, 6))
+    plt.barh(importance_df["Feature"], importance_df["Importance"])
+    plt.xlabel("Importance Score")
+    plt.ylabel("Feature Name")
+    plt.title("Feature Importance")
+    plt.gca().invert_yaxis()  # 让重要性最高的特征在顶部
+    plt.show()
+
+    # 输出特征重要性数据
+    print(importance_df)
+
     # 存储模型
-    if config.SAVE_TRAIN_TEST != 0:
+    if config.SAVE_LEVEL != 0:
         model_path = f"{config.DATAPATH}{current_time}_{config.SAVE_MODEL}"
         joblib.dump(best_model, model_path)
         print(f"Model saved to {model_path}")
@@ -253,11 +238,11 @@ def main():
     test_auc = roc_auc_score(y_test, test_probabilities)
     print("Test AUC: ", test_auc)
 
-    if config.SAVE_TRAIN_TEST == 0:
+    if config.SAVE_LEVEL == 0:
         pass
-    elif config.SAVE_TRAIN_TEST == 1:
+    elif config.SAVE_LEVEL == 1:
         pd.DataFrame(test_probabilities).to_csv(f"{config.DATAPATH}{args.dataset}-{args.param}-y_prob.csv", index=False)
-    elif config.SAVE_TRAIN_TEST == 2:
+    elif config.SAVE_LEVEL == 2:
         test_probabilities = pd.Series(test_probabilities, name="predict_fraud_probability")
         pd.concat([pd.DataFrame(X_test, columns=columns_name), y_test, test_probabilities], axis=1).to_csv(f"{config.DATAPATH}{args.dataset}-{args.param}-X_test_with_prob.csv", index=False)
 
@@ -321,11 +306,11 @@ def main():
     # Print classification report for detailed model evaluation
     print(classification_report(y_test, y_pred))
 
-    if config.SAVE_TRAIN_TEST == 0:
+    if config.SAVE_LEVEL == 0:
         pass
-    elif config.SAVE_TRAIN_TEST == 1:
+    elif config.SAVE_LEVEL == 1:
         pd.DataFrame(y_pred).to_csv(f"{config.DATAPATH}{args.dataset}-{args.param}-y_pred.csv", index=False)
-    elif config.SAVE_TRAIN_TEST == 2:
+    elif config.SAVE_LEVEL == 2:
         y_pred = pd.Series(y_pred, name="predict_fraud")
         pd.concat([pd.DataFrame(X_test, columns=columns_name), y_test, y_pred], axis=1).to_csv(f"{config.DATAPATH}{args.dataset}-{args.param}-X_test_with_pred.csv", index=False)
 

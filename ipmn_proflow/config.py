@@ -20,7 +20,8 @@ class Config:
         # Random seed for reproducibility
         self.RANDOM_SEED = 42
 
-        self.SAVE_TRAIN_TEST = 2
+        # 0 don't save anything, 1 save separately, 2 save in same file
+        self.SAVE_LEVEL = 0
 
         # Standardized input parameters that datasets must follow
         self.STANDARD_INPUT_PARAM = ['Is_laundering',
@@ -30,7 +31,7 @@ class Config:
         # Label for classification tasks
         self.STANDARD_INPUT_LABEL = ['Is_laundering']
 
-        self.STANDARD_TIME_PARAM = ['Date', 'Timestamp']
+        self.STANDARD_TIME_PARAM = ['Date', 'Timestamp', 'Year', 'Month']
 
         # Dataset modes for argument selection
         self.DATASET_MODES = {
@@ -65,18 +66,18 @@ class Config:
             'param_b': 'param_b',
         }
 
-        self.WINDOW_SIZE = 7
+        self.WINDOW_SIZE = 10
         self.SLIDER_STEP = 1
 
         # Hyperparameter grid for XGBoost model tuning
         self.PARAM_GRID = {
-            'max_depth': [14, 16],
-            'eta': [0.1, 0.12],
+            'max_depth': [14],
+            'eta': [0.12],
         }
 
         # Target true positive rate (TPR) for model evaluation
         self.TPR = 0.95
-
+        # 0 for above preset, 1 for manual click choice
         self.TPR_SET = 0
 
         # program running modes
