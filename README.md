@@ -1,5 +1,10 @@
 # NEED UPDATE
 
+simple test:
+```bash
+--dataset all_d73 --param param_b
+```
+
 # Money Laundering Detection System
 
 This repository contains a Python-based system for detecting money laundering activities in financial transaction data. The project is divided into two main components:
