@@ -4,6 +4,9 @@ from imports import *
 class Config:
     """
     Configuration class for managing dataset paths, parameters, modes, and hyperparameters.
+
+    set multi choices config by args (in case invalid args)
+    TODO: set specific numbers, names and path by load a json file
     """
 
     def __init__(self):
@@ -20,16 +23,18 @@ class Config:
         # Random seed for reproducibility
         self.RANDOM_SEED = 42
 
-        # 0 don't save anything, 1 save separately, 2 save in same file
-        self.SAVE_LEVEL = 0
+        # -1 don't save anything, 0 only save model, 1 save data separately, 2 save predict in same file
+        self.SAVE_LEVEL = -1
 
         # Standardized input parameters that datasets must follow
-        self.STANDARD_INPUT_PARAM = ['Is_laundering',
+        self.STANDARD_INPUT_PARAM = ['Is_laundering', 'Laundering_type',
                                      'Date', 'Time', 'Sender_account', 'Receiver_account', 'Amount',
                                      'Payment_currency', 'Received_currency', 'Payment_type']
 
         # Label for classification tasks
-        self.STANDARD_INPUT_LABEL = ['Is_laundering']
+        self.STANDARD_INPUT_LABEL = 'Is_laundering'
+
+        self.MULTI_CLASS_LABEL = 'Laundering_type'
 
         self.STANDARD_TIME_PARAM = ['Date', 'Timestamp', 'Year', 'Month']
 
@@ -71,8 +76,8 @@ class Config:
 
         # Hyperparameter grid for XGBoost model tuning
         self.PARAM_GRID = {
-            'max_depth': [14],
-            'eta': [0.12],
+            'max_depth': [14, 16],
+            'eta': [0.12, 0.14],
         }
 
         # Target true positive rate (TPR) for model evaluation

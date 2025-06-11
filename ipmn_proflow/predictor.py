@@ -2,10 +2,10 @@ from imports import *
 
 config = Config()
 param = 'param_b'
-dataset = '2023-06.csv'
+dataset = '2023-07.csv'
 # dataset = 'sampled_IBM.csv'
-model_path = f"{config.DATAPATH}20250602_102921_saved_model.pkl"
-transformer_path = f"{config.DATAPATH}20250602_102921_saved_transformer.pkl"
+model_path = f"{config.DATAPATH}20250604_120917_saved_model.pkl"
+transformer_path = f"{config.DATAPATH}20250604_120917_saved_transformer.pkl"
 config.SAVE_LEVEL = 0
 
 data_set = UnitDataLoader.csvloader_specified(config, dataset)
