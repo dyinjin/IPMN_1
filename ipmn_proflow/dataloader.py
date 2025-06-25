@@ -188,3 +188,64 @@ class UnitDataLoader:
 
         # Return the populated standardized dataset
         return data_set
+
+
+def load_dataset(config):
+    # Load dataset based on mode specified in arguments
+    """
+    """
+    print(f"Load dataset by mode: {config.DATASET_MODES}")
+
+    if config.DATASET_MODES == config.MODE_QUICK_TEST:
+        train_set = UnitDataLoader.dataloader_between(config, config.QT_TRAIN_START, config.QT_TRAIN_END)
+        test_set = UnitDataLoader.dataloader_between(config, config.QT_TEST_START, config.QT_TEST_END)
+
+    elif config.DATASET_MODES == config.MODE_ALL_D73:
+        data_set = UnitDataLoader.dataloader_all(config)
+        split_index = int(len(data_set) * 0.7)
+        train_set, test_set = data_set.iloc[:split_index], data_set.iloc[split_index:]
+
+    elif config.DATASET_MODES == config.MODE_ALL_D82:
+        data_set = UnitDataLoader.dataloader_all(config)
+        split_index = int(len(data_set) * 0.8)
+        train_set, test_set = data_set.iloc[:split_index], data_set.iloc[split_index:]
+
+    elif config.DATASET_MODES == config.MODE_FIRST_2_D73:
+        data_set = UnitDataLoader.dataloader_first(config, 2)
+        split_index = int(len(data_set) * 0.7)
+        train_set, test_set = data_set.iloc[:split_index], data_set.iloc[split_index:]
+
+    elif config.DATASET_MODES == config.MODE_FIRST_4_D73:
+        data_set = UnitDataLoader.dataloader_first(config, 4)
+        split_index = int(len(data_set) * 0.7)
+        train_set, test_set = data_set.iloc[:split_index], data_set.iloc[split_index:]
+
+    elif config.DATASET_MODES == config.MODE_IBM_D73:
+        # TODO: ONLY IBM_d73 for BETA TEST
+        # Thought the time span was too short(1day), NOT SUITABLE as a training set
+        data_set = UnitDataLoader.csvloader_specified(config, config.IBM_CSV)
+        data_set = UnitDataLoader.datauniter_ibm(config, data_set)
+        # by random?
+        train_set, test_set = train_test_split(data_set, test_size=0.3, random_state=config.RANDOM_SEED)
+        train_set = train_set.sort_values(by='Date')
+        test_set = test_set.sort_values(by='Date')
+        # by time?
+        # split_index = int(len(data_set) * 0.7)
+        # train_set, test_set = data_set.iloc[:split_index], data_set.iloc[split_index:]
+
+    elif config.DATASET_MODES == config.MODE_SPECIFIC_TEST:
+        # need different "datauniter" function, the column names of the dataset need be consistent
+        train_set = UnitDataLoader.csvloader_specified(config, config.SP_TRAIN_FILE)
+        train_set = UnitDataLoader.datauniter_saml(config, train_set)
+        test_set = UnitDataLoader.csvloader_specified(config, config.SP_TEST_FILE)
+        test_set = UnitDataLoader.datauniter_saml(config, test_set)
+
+    else:
+        # Raise an error if dataset mode is unsupported
+        raise AttributeError(f"Dataset mode '{config.DATASET_MODES}' is not supported.")
+
+    # reset index this make sure transaction match with each other
+    train_set = train_set.reset_index(drop=True)
+    test_set = test_set.reset_index(drop=True)
+
+    return train_set, test_set
